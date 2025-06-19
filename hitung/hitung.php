@@ -5,13 +5,18 @@ if (isset($_SESSION['username'])) {
 	include('../includes/header.php');
 ?>
 
+	<!-- Bootstrap 4 JS and dependencies -->
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 	<div class="container-fluid">
 		<div class="row">
-			<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+			<main class="col-md-9 ml-sm-auto col-lg-12 px-md-4 py-4">
 				<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 					<h1 class="h2">Hasil Perankingan Gabungan</h1>
 					<div class="btn-toolbar mb-2 mb-md-0">
-						<a href="../skema_hitung/skema_hitung.php" class="btn btn-warning me-2">
+						<a href="../skema_hitung/skema_hitung.php" class="btn btn-warning mr-2">
 							<i class="fas fa-project-diagram"></i> View Skema
 						</a>
 						<a href="../laporan/laporan.php" class="btn btn-success">
@@ -21,14 +26,14 @@ if (isset($_SESSION['username'])) {
 				</div>
 
 				<!-- Combined Results Table -->
-				<div class="card shadow-sm mb-4">
+				<div class="card mb-4">
 					<div class="card-header bg-primary text-white">
 						<h4 class="mb-0">Hasil Gabungan ARAS dan PIPRECIA-S</h4>
 					</div>
 					<div class="card-body">
 						<div class="table-responsive">
 							<table class="table table-striped table-hover">
-								<thead class="table-dark">
+								<thead class="thead-dark">
 									<tr>
 										<th>Ranking</th>
 										<th>Alternatif</th>
@@ -47,7 +52,7 @@ if (isset($_SESSION['username'])) {
 										$bobot_kriteria[$row['kriteria']] = $row['bobot_piprecia'];
 									}
 
-									// 2. Hitung ulang ARAS dengan bobot PIPRECIA-S untuk hasil yang lebih valid
+									// 2. Hitung ulang ARAS dengan bobot PIPRECIA-S
 									$aras_scores = [];
 									$matrik_query = mysqli_query($koneksi, "SELECT * FROM data_matrik WHERE alternatif != '-'");
 
@@ -112,12 +117,12 @@ if (isset($_SESSION['username'])) {
 										$piprecia_scores[$alt] = $score / $max_piprecia;
 									}
 
-									// 5. Hitung skor gabungan dengan bobot (bisa disesuaikan)
+									// 5. Hitung skor gabungan dengan bobot
 									$combined_scores = [];
 									foreach ($aras_scores as $alt => $score) {
 										if (isset($piprecia_scores[$alt])) {
 											$combined_scores[$alt] = [
-												'combined' => (0.6 * $score) + (0.4 * $piprecia_scores[$alt]), // Bobot bisa diubah
+												'combined' => (0.6 * $score) + (0.4 * $piprecia_scores[$alt]),
 												'aras' => $score,
 												'piprecia' => $piprecia_scores[$alt],
 												'details' => $matrik_data[$alt]
@@ -131,20 +136,22 @@ if (isset($_SESSION['username'])) {
 									// 7. Tampilkan hasil
 									$rank = 1;
 									foreach ($combined_scores as $alt => $scores) {
+										$modal_id = 'detailModal_' . md5($alt); // Create unique ID for modal
 										echo '
                                     <tr>
-                                        <td>' . $rank++ . '</td>
+                                        <td>' . $rank . '</td>
                                         <td>' . htmlspecialchars($alt) . '</td>
                                         <td>' . number_format($scores['combined'], 4) . '</td>
                                         <td>' . number_format($scores['aras'], 4) . '</td>
                                         <td>' . number_format($scores['piprecia'], 4) . '</td>
                                         <td>
-                                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detailModal' . $rank . '">
+                                            <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#' . $modal_id . '">
                                                 <i class="fas fa-info-circle"></i>
                                             </button>
                                         </td>
                                     </tr>
                                     ';
+										$rank++;
 									}
 									?>
 								</tbody>
@@ -166,47 +173,59 @@ if (isset($_SESSION['username'])) {
 				<?php
 				$rank = 1;
 				foreach ($combined_scores as $alt => $scores) {
+					$modal_id = 'detailModal_' . md5($alt);
 					echo '
-                <div class="modal fade" id="detailModal' . $rank . '" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
+                <div class="modal fade" id="' . $modal_id . '" tabindex="-1" role="dialog" aria-labelledby="' . $modal_id . 'Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
                         <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Detail Nilai: ' . htmlspecialchars($alt) . '</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="' . $modal_id . 'Label">Detail Nilai: ' . htmlspecialchars($alt) . '</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
                             </div>
                             <div class="modal-body">
-                                <table class="table table-bordered">
-                                    <tr>
-                                        <th>Kriteria</th>
-                                        <th>Nilai</th>
-                                        <th>Normalisasi</th>
-                                        <th>Bobot</th>
-                                    </tr>
-                                    <tr>
-                                        <td>Tinggi Badan</td>
-                                        <td>' . $scores['details']['tinggi_badan'] . '</td>
-                                        <td>' . number_format($scores['details']['tinggi_badan'] / $max_values['tinggi_badan'], 4) . '</td>
-                                        <td>' . number_format($bobot_kriteria['tinggi_badan'], 4) . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Berat Badan</td>
-                                        <td>' . $scores['details']['berat_badan'] . '</td>
-                                        <td>' . number_format($max_values['berat_badan'] / $scores['details']['berat_badan'], 4) . '</td>
-                                        <td>' . number_format($bobot_kriteria['berat_badan'], 4) . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Berpenampilan Menarik</td>
-                                        <td>' . $scores['details']['berpenampilan_menarik'] . '</td>
-                                        <td>' . number_format($scores['details']['berpenampilan_menarik'] / $max_values['berpenampilan_menarik'], 4) . '</td>
-                                        <td>' . number_format($bobot_kriteria['berpenampilan_menarik'], 4) . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Menguasai Panggung</td>
-                                        <td>' . $scores['details']['menguasai_panggung'] . '</td>
-                                        <td>' . number_format($scores['details']['menguasai_panggung'] / $max_values['menguasai_panggung'], 4) . '</td>
-                                        <td>' . number_format($bobot_kriteria['menguasai_panggung'], 4) . '</td>
-                                    </tr>
-                                </table>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Kriteria</th>
+                                                <th>Nilai</th>
+                                                <th>Normalisasi</th>
+                                                <th>Bobot</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Tinggi Badan</td>
+                                                <td>' . $scores['details']['tinggi_badan'] . '</td>
+                                                <td>' . number_format($scores['details']['tinggi_badan'] / $max_values['tinggi_badan'], 4) . '</td>
+                                                <td>' . number_format($bobot_kriteria['tinggi_badan'], 4) . '</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Berat Badan</td>
+                                                <td>' . $scores['details']['berat_badan'] . '</td>
+                                                <td>' . number_format($max_values['berat_badan'] / $scores['details']['berat_badan'], 4) . '</td>
+                                                <td>' . number_format($bobot_kriteria['berat_badan'], 4) . '</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Berpenampilan Menarik</td>
+                                                <td>' . $scores['details']['berpenampilan_menarik'] . '</td>
+                                                <td>' . number_format($scores['details']['berpenampilan_menarik'] / $max_values['berpenampilan_menarik'], 4) . '</td>
+                                                <td>' . number_format($bobot_kriteria['berpenampilan_menarik'], 4) . '</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Menguasai Panggung</td>
+                                                <td>' . $scores['details']['menguasai_panggung'] . '</td>
+                                                <td>' . number_format($scores['details']['menguasai_panggung'] / $max_values['menguasai_panggung'], 4) . '</td>
+                                                <td>' . number_format($bobot_kriteria['menguasai_panggung'], 4) . '</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
                             </div>
                         </div>
                     </div>

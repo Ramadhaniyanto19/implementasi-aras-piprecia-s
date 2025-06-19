@@ -147,8 +147,8 @@
                     <div class="d-flex">
                         <?php if (!isset($_SESSION['username'])) { ?>
                             <a href="login/index.php" class="btn btn-primary mr-3">Login</a>
+                            <a href="login/index.php" class="btn btn-outline-secondary">Login Disini <i class="fas fa-arrow-right"></i> </a>
                         <?php } ?>
-                        <a href="#learn-more" class="btn btn-outline-secondary">Login Disini <i class="fas fa-arrow-right"></i> </a>
                     </div>
                 </div>
                 <div class="hero-image">
