@@ -15,6 +15,13 @@
     <link rel="icon" href="../img/logo.png">
 </head>
 
+<!-- Bootstrap 4 JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<!-- Chart.js for visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -22,7 +29,7 @@
             <?php include('sidebar.php'); ?>
 
             <!-- Main Content -->
-            <main role="main" class="ml-5 w-full h-full col-9">
+            <main role="main" class=" w-full h-full ">
                 <!-- <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
                     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#sidebar">
                         <span class="navbar-toggler-icon"></span>
@@ -34,4 +41,4 @@
                     </div>
                 </nav> -->
 
-                <div class="">
+                <div class="ml-5">
