@@ -7,16 +7,76 @@ if (!isset($_SESSION['username'])) {
     exit();
 }
 
+// Function to calculate PIPRECIA weights
+// Modify the calculatePIPRECIAWeights function to this:
+
+function calculatePIPRECIAWeights($koneksi)
+{
+    // Reset semua nilai perhitungan sebelumnya
+    mysqli_query($koneksi, "UPDATE bobot_kriteria SET 
+        rank_piprecia = NULL,
+        sj = NULL,
+        kj = NULL,
+        qj = NULL,
+        bobot_piprecia = NULL");
+
+    // Step 1: Dapatkan kriteria dan set ranking
+    $result = mysqli_query($koneksi, "SELECT id FROM bobot_kriteria ORDER BY id ASC");
+    $ids = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $ids[] = $row['id'];
+    }
+
+    // Step 2: Set ranking (1 = paling penting)
+    foreach ($ids as $index => $id) {
+        $rank = $index + 1;
+        mysqli_query($koneksi, "UPDATE bobot_kriteria SET rank_piprecia = $rank WHERE id = $id");
+    }
+
+    // Step 3: Hitung sj (importance relative)
+    $result = mysqli_query($koneksi, "SELECT id, rank_piprecia FROM bobot_kriteria ORDER BY rank_piprecia ASC");
+    while ($row = mysqli_fetch_assoc($result)) {
+        $sj = ($row['rank_piprecia'] == 1) ? 0 : 1 + (($row['rank_piprecia'] - 1) * 0.2);
+        mysqli_query($koneksi, "UPDATE bobot_kriteria SET sj = $sj WHERE id = {$row['id']}");
+    }
+
+    // Step 4: Hitung kj
+    mysqli_query($koneksi, "UPDATE bobot_kriteria SET kj = IF(rank_piprecia = 1, 1, sj + 1)");
+
+    // Step 5: Hitung qj
+    $qj_previous = 1;
+    $result = mysqli_query($koneksi, "SELECT id, kj FROM bobot_kriteria ORDER BY rank_piprecia ASC");
+    while ($row = mysqli_fetch_assoc($result)) {
+        $qj = ($row['kj'] == 1) ? 1 : $qj_previous / $row['kj'];
+        mysqli_query($koneksi, "UPDATE bobot_kriteria SET qj = $qj WHERE id = {$row['id']}");
+        $qj_previous = $qj;
+    }
+
+    // Step 6: Hitung bobot akhir (wj)
+    $sum_qj = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT SUM(qj) as total FROM bobot_kriteria"))['total'];
+    mysqli_query($koneksi, "UPDATE bobot_kriteria SET bobot_piprecia = qj / $sum_qj");
+
+    // Validasi bobot
+    $check = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT SUM(bobot_piprecia) as total FROM bobot_kriteria"));
+    if (abs($check['total'] - 1) > 0.01) {
+        // Jika total bobot tidak 1, lakukan normalisasi ulang
+        mysqli_query($koneksi, "UPDATE bobot_kriteria SET 
+            bobot_piprecia = bobot_piprecia / {$check['total']}");
+    }
+}
+
+
 // Create
 if (isset($_POST['tambah'])) {
     $kriteria = $_POST['kriteria'];
-    $bobot_piprecia = $_POST['bobot_piprecia'];
     $jenis = $_POST['jenis']; // benefit/cost
 
-    $query = "INSERT INTO bobot_kriteria (kriteria, bobot_piprecia, jenis) VALUES ('$kriteria', '$bobot_piprecia', '$jenis')";
+    $query = "INSERT INTO bobot_kriteria (kriteria, jenis) VALUES ('$kriteria', '$jenis')";
     $result = mysqli_query($koneksi, $query);
 
     if ($result) {
+        // After adding new criterion, recalculate weights
+        calculatePIPRECIAWeights($koneksi);
         header("Location: kriteria.php?success=1");
     } else {
         echo "Gagal menambahkan data: " . mysqli_error($koneksi);
@@ -24,7 +84,7 @@ if (isset($_POST['tambah'])) {
 }
 
 // Read
-$query = "SELECT * FROM bobot_kriteria ORDER BY id ASC";
+$query = "SELECT * FROM bobot_kriteria ORDER BY rank_piprecia ASC";
 $result = mysqli_query($koneksi, $query);
 $kriteria = [];
 while ($row = mysqli_fetch_assoc($result)) {
@@ -35,13 +95,14 @@ while ($row = mysqli_fetch_assoc($result)) {
 if (isset($_POST['update'])) {
     $id = $_POST['id'];
     $kriteria = $_POST['kriteria'];
-    $bobot_piprecia = $_POST['bobot_piprecia'];
     $jenis = $_POST['jenis'];
 
-    $query = "UPDATE bobot_kriteria SET kriteria='$kriteria', bobot_piprecia='$bobot_piprecia', jenis='$jenis' WHERE id='$id'";
+    $query = "UPDATE bobot_kriteria SET kriteria='$kriteria', jenis='$jenis' WHERE id='$id'";
     $result = mysqli_query($koneksi, $query);
 
     if ($result) {
+        // After updating, recalculate weights
+        calculatePIPRECIAWeights($koneksi);
         header("Location: kriteria.php?success=2");
     } else {
         echo "Gagal mengupdate data: " . mysqli_error($koneksi);
@@ -56,13 +117,22 @@ if (isset($_GET['delete'])) {
     $result = mysqli_query($koneksi, $query);
 
     if ($result) {
+        // After deleting, recalculate weights
+        calculatePIPRECIAWeights($koneksi);
         header("Location: kriteria.php?success=3");
     } else {
         echo "Gagal menghapus data: " . mysqli_error($koneksi);
     }
 }
+
+// Calculate weights on initial load if not calculated yet
+$check_weights = mysqli_query($koneksi, "SELECT COUNT(*) as count FROM bobot_kriteria WHERE bobot_piprecia IS NULL");
+if (mysqli_fetch_assoc($check_weights)['count'] > 0) {
+    calculatePIPRECIAWeights($koneksi);
+}
 ?>
 
+<!-- Rest of your HTML remains the same, but remove the weight input field -->
 <?php include '../../includes/header.php'; ?>
 <div class="container-fluid mt-4 w-full">
     <div class="row justify-content-center w-full">
@@ -70,16 +140,15 @@ if (isset($_GET['delete'])) {
 
             <h2>Data Bobot Kriteria</h2>
 
-            <!-- Explanation about Criteria -->
             <div class="alert alert-info mb-4">
-                <strong>Penjelasan Kriteria:</strong>
-                <p>Kriteria adalah faktor-faktor penilaian yang digunakan dalam sistem pendukung keputusan PIPRECIA-ARAS. Setiap kriteria memiliki:</p>
-                <ul>
-                    <li><strong>Nama Kriteria</strong> - Menjelaskan aspek yang dinilai</li>
-                    <li><strong>Bobot PIPRECIA</strong> - Nilai penting kriteria (0-1) yang dihitung menggunakan metode PIPRECIA</li>
-                    <li><strong>Jenis Kriteria</strong> - Benefit (semakin besar semakin baik) atau Cost (semakin kecil semakin baik)</li>
-                </ul>
-                <p>Contoh kriteria benefit: Kualitas Produk, Pelayanan. Contoh kriteria cost: Harga, Waktu Pengiriman.</p>
+                <strong>Metode PIPRECIA:</strong>
+                <p>Bobot kriteria dihitung otomatis menggunakan metode PIPRECIA. Sistem akan:</p>
+                <ol>
+                    <li>Menentukan ranking kriteria berdasarkan urutan input</li>
+                    <li>Menghitung nilai kepentingan relatif (sj)</li>
+                    <li>Menghitung nilai kj dan qj</li>
+                    <li>Menghitung bobot akhir (wj) yang dinormalisasi</li>
+                </ol>
             </div>
 
             <?php if (isset($_GET['success'])): ?>
@@ -92,8 +161,7 @@ if (isset($_GET['delete'])) {
                 </div>
             <?php endif; ?>
 
-            <!-- Rest of your existing code remains the same -->
-            <!-- Form Tambah Data -->
+            <!-- Form Tambah Data - Remove weight input -->
             <div class="card mb-4">
                 <div class="card-header">
                     <h5>Tambah Kriteria Baru</h5>
@@ -101,15 +169,11 @@ if (isset($_GET['delete'])) {
                 <div class="card-body">
                     <form method="POST" action="">
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-8">
                                 <label>Nama Kriteria</label>
                                 <input type="text" name="kriteria" class="form-control" required>
                             </div>
-                            <div class="form-group col-md-3">
-                                <label>Bobot PIPRECIA</label>
-                                <input type="number" step="0.01" name="bobot_piprecia" class="form-control" required>
-                            </div>
-                            <div class="form-group col-md-3">
+                            <div class="form-group col-md-4">
                                 <label>Jenis Kriteria</label>
                                 <select name="jenis" class="form-control" required>
                                     <option value="benefit">Benefit</option>
@@ -134,6 +198,7 @@ if (isset($_GET['delete'])) {
                                 <tr>
                                     <th>No</th>
                                     <th>Kriteria</th>
+                                    <th>Ranking</th>
                                     <th>Bobot PIPRECIA</th>
                                     <th>Jenis</th>
                                     <th>Aksi</th>
@@ -142,14 +207,15 @@ if (isset($_GET['delete'])) {
                             <tbody>
                                 <?php if (empty($kriteria)): ?>
                                     <tr>
-                                        <td colspan="5" class="text-center">Tidak ada data</td>
+                                        <td colspan="6" class="text-center">Tidak ada data</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($kriteria as $index => $item): ?>
                                         <tr>
                                             <td><?= $index + 1 ?></td>
                                             <td><?= $item['kriteria'] ?></td>
-                                            <td><?= $item['bobot_piprecia'] ?></td>
+                                            <td><?= $item['rank_piprecia'] ?></td>
+                                            <td><?= number_format($item['bobot_piprecia'], 4) ?></td>
                                             <td>
                                                 <span class="badge badge-<?= $item['jenis'] == 'benefit' ? 'success' : 'danger' ?>">
                                                     <?= ucfirst($item['jenis']) ?>
@@ -161,7 +227,7 @@ if (isset($_GET['delete'])) {
                                                     Edit
                                                 </button>
 
-                                                <!-- Modal Edit -->
+                                                <!-- Modal Edit - Remove weight input -->
                                                 <div class="modal fade" id="editModal<?= $item['id'] ?>" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
                                                     <div class="modal-dialog" role="document">
                                                         <div class="modal-content">
@@ -178,18 +244,12 @@ if (isset($_GET['delete'])) {
                                                                         <label>Nama Kriteria</label>
                                                                         <input type="text" name="kriteria" class="form-control" value="<?= $item['kriteria'] ?>" required>
                                                                     </div>
-                                                                    <div class="form-row">
-                                                                        <div class="form-group col-md-6">
-                                                                            <label>Bobot PIPRECIA</label>
-                                                                            <input type="number" step="0.01" name="bobot_piprecia" class="form-control" value="<?= $item['bobot_piprecia'] ?>" required>
-                                                                        </div>
-                                                                        <div class="form-group col-md-6">
-                                                                            <label>Jenis Kriteria</label>
-                                                                            <select name="jenis" class="form-control" required>
-                                                                                <option value="benefit" <?= $item['jenis'] == 'benefit' ? 'selected' : '' ?>>Benefit</option>
-                                                                                <option value="cost" <?= $item['jenis'] == 'cost' ? 'selected' : '' ?>>Cost</option>
-                                                                            </select>
-                                                                        </div>
+                                                                    <div class="form-group">
+                                                                        <label>Jenis Kriteria</label>
+                                                                        <select name="jenis" class="form-control" required>
+                                                                            <option value="benefit" <?= $item['jenis'] == 'benefit' ? 'selected' : '' ?>>Benefit</option>
+                                                                            <option value="cost" <?= $item['jenis'] == 'cost' ? 'selected' : '' ?>>Cost</option>
+                                                                        </select>
                                                                     </div>
                                                                 </div>
                                                                 <div class="modal-footer">
