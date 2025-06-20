@@ -7,12 +7,54 @@ if (!isset($_SESSION['username'])) {
     exit();
 }
 
-// Function to calculate PIPRECIA weights
-// Modify the calculatePIPRECIAWeights function to this:
+// Function to update data_primer and data_matrik tables structure based on criteria
+function updateTablesStructure($koneksi)
+{
+    // Get all criteria
+    $query = "SELECT kriteria, jenis FROM bobot_kriteria";
+    $result = mysqli_query($koneksi, $query);
+    $columns = [];
 
+    while ($row = mysqli_fetch_assoc($result)) {
+        $col_name = strtolower(str_replace(' ', '_', $row['kriteria']));
+        $col_type = ($row['jenis'] == 'benefit') ? 'INT' : 'DECIMAL(10,2)';
+        $columns[$col_name] = $col_type;
+    }
+
+    // Update both tables
+    $tables = ['data_primer', 'data_matrik'];
+
+    foreach ($tables as $table) {
+        // Get existing columns
+        $existing_columns = [];
+        $result = mysqli_query($koneksi, "SHOW COLUMNS FROM $table");
+        while ($row = mysqli_fetch_assoc($result)) {
+            $existing_columns[] = $row['Field'];
+        }
+
+        // Add new columns if they don't exist
+        foreach ($columns as $col_name => $col_type) {
+            if (!in_array($col_name, $existing_columns)) {
+                $query = "ALTER TABLE $table ADD COLUMN $col_name $col_type NULL";
+                mysqli_query($koneksi, $query);
+            }
+        }
+
+        // Remove columns that are no longer in criteria (optional)
+        foreach ($existing_columns as $col) {
+            $protected_columns = ['id', 'alternatif'];
+            if (!in_array($col, $protected_columns) && !array_key_exists($col, $columns)) {
+                $query = "ALTER TABLE $table DROP COLUMN $col";
+                mysqli_query($koneksi, $query);
+            }
+        }
+    }
+}
+
+// Function to calculate PIPRECIA weights
 function calculatePIPRECIAWeights($koneksi)
 {
-    // Reset semua nilai perhitungan sebelumnya
+    // Reset all previous calculations
     mysqli_query($koneksi, "UPDATE bobot_kriteria SET 
         rank_piprecia = NULL,
         sj = NULL,
@@ -20,30 +62,30 @@ function calculatePIPRECIAWeights($koneksi)
         qj = NULL,
         bobot_piprecia = NULL");
 
-    // Step 1: Dapatkan kriteria dan set ranking
+    // Step 1: Get criteria and set ranking
     $result = mysqli_query($koneksi, "SELECT id FROM bobot_kriteria ORDER BY id ASC");
     $ids = [];
     while ($row = mysqli_fetch_assoc($result)) {
         $ids[] = $row['id'];
     }
 
-    // Step 2: Set ranking (1 = paling penting)
+    // Step 2: Set ranking (1 = most important)
     foreach ($ids as $index => $id) {
         $rank = $index + 1;
         mysqli_query($koneksi, "UPDATE bobot_kriteria SET rank_piprecia = $rank WHERE id = $id");
     }
 
-    // Step 3: Hitung sj (importance relative)
+    // Step 3: Calculate sj (importance relative)
     $result = mysqli_query($koneksi, "SELECT id, rank_piprecia FROM bobot_kriteria ORDER BY rank_piprecia ASC");
     while ($row = mysqli_fetch_assoc($result)) {
         $sj = ($row['rank_piprecia'] == 1) ? 0 : 1 + (($row['rank_piprecia'] - 1) * 0.2);
         mysqli_query($koneksi, "UPDATE bobot_kriteria SET sj = $sj WHERE id = {$row['id']}");
     }
 
-    // Step 4: Hitung kj
+    // Step 4: Calculate kj
     mysqli_query($koneksi, "UPDATE bobot_kriteria SET kj = IF(rank_piprecia = 1, 1, sj + 1)");
 
-    // Step 5: Hitung qj
+    // Step 5: Calculate qj
     $qj_previous = 1;
     $result = mysqli_query($koneksi, "SELECT id, kj FROM bobot_kriteria ORDER BY rank_piprecia ASC");
     while ($row = mysqli_fetch_assoc($result)) {
@@ -52,21 +94,23 @@ function calculatePIPRECIAWeights($koneksi)
         $qj_previous = $qj;
     }
 
-    // Step 6: Hitung bobot akhir (wj)
+    // Step 6: Calculate final weights (wj)
     $sum_qj = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT SUM(qj) as total FROM bobot_kriteria"))['total'];
     mysqli_query($koneksi, "UPDATE bobot_kriteria SET bobot_piprecia = qj / $sum_qj");
 
-    // Validasi bobot
+    // Validate weights
     $check = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT SUM(bobot_piprecia) as total FROM bobot_kriteria"));
     if (abs($check['total'] - 1) > 0.01) {
-        // Jika total bobot tidak 1, lakukan normalisasi ulang
+        // If total weights don't sum to 1, renormalize
         mysqli_query($koneksi, "UPDATE bobot_kriteria SET 
             bobot_piprecia = bobot_piprecia / {$check['total']}");
     }
+
+    // Update data_primer structure after weight calculation
+    updateTablesStructure($koneksi);
 }
 
-
-// Create
+// Create new criteria
 if (isset($_POST['tambah'])) {
     $kriteria = $_POST['kriteria'];
     $jenis = $_POST['jenis']; // benefit/cost
@@ -75,7 +119,7 @@ if (isset($_POST['tambah'])) {
     $result = mysqli_query($koneksi, $query);
 
     if ($result) {
-        // After adding new criterion, recalculate weights
+        // After adding new criterion, recalculate weights and update structure
         calculatePIPRECIAWeights($koneksi);
         header("Location: kriteria.php?success=1");
     } else {
@@ -83,7 +127,7 @@ if (isset($_POST['tambah'])) {
     }
 }
 
-// Read
+// Read criteria
 $query = "SELECT * FROM bobot_kriteria ORDER BY rank_piprecia ASC";
 $result = mysqli_query($koneksi, $query);
 $kriteria = [];
@@ -91,7 +135,7 @@ while ($row = mysqli_fetch_assoc($result)) {
     $kriteria[] = $row;
 }
 
-// Update
+// Update criteria
 if (isset($_POST['update'])) {
     $id = $_POST['id'];
     $kriteria = $_POST['kriteria'];
@@ -101,7 +145,7 @@ if (isset($_POST['update'])) {
     $result = mysqli_query($koneksi, $query);
 
     if ($result) {
-        // After updating, recalculate weights
+        // After updating, recalculate weights and update structure
         calculatePIPRECIAWeights($koneksi);
         header("Location: kriteria.php?success=2");
     } else {
@@ -109,7 +153,7 @@ if (isset($_POST['update'])) {
     }
 }
 
-// Delete
+// Delete criteria
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
 
@@ -117,7 +161,7 @@ if (isset($_GET['delete'])) {
     $result = mysqli_query($koneksi, $query);
 
     if ($result) {
-        // After deleting, recalculate weights
+        // After deleting, recalculate weights and update structure
         calculatePIPRECIAWeights($koneksi);
         header("Location: kriteria.php?success=3");
     } else {
@@ -130,9 +174,19 @@ $check_weights = mysqli_query($koneksi, "SELECT COUNT(*) as count FROM bobot_kri
 if (mysqli_fetch_assoc($check_weights)['count'] > 0) {
     calculatePIPRECIAWeights($koneksi);
 }
+
+// Initialize data_primer table if it doesn't exist
+$check_table = mysqli_query($koneksi, "SHOW TABLES LIKE 'data_primer'");
+if (mysqli_num_rows($check_table) == 0) {
+    mysqli_query($koneksi, "CREATE TABLE data_primer (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        alternatif VARCHAR(50) NOT NULL,
+        PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=latin1");
+    updateTablesStructure($koneksi);
+}
 ?>
 
-<!-- Rest of your HTML remains the same, but remove the weight input field -->
 <?php include '../../includes/header.php'; ?>
 <div class="container-fluid mt-4 w-full">
     <div class="row justify-content-center w-full">
@@ -148,6 +202,7 @@ if (mysqli_fetch_assoc($check_weights)['count'] > 0) {
                     <li>Menghitung nilai kepentingan relatif (sj)</li>
                     <li>Menghitung nilai kj dan qj</li>
                     <li>Menghitung bobot akhir (wj) yang dinormalisasi</li>
+                    <li>Update struktur tabel alternatif secara otomatis</li>
                 </ol>
             </div>
 
@@ -161,7 +216,7 @@ if (mysqli_fetch_assoc($check_weights)['count'] > 0) {
                 </div>
             <?php endif; ?>
 
-            <!-- Form Tambah Data - Remove weight input -->
+            <!-- Form Tambah Data -->
             <div class="card mb-4">
                 <div class="card-header">
                     <h5>Tambah Kriteria Baru</h5>
@@ -213,7 +268,7 @@ if (mysqli_fetch_assoc($check_weights)['count'] > 0) {
                                     <?php foreach ($kriteria as $index => $item): ?>
                                         <tr>
                                             <td><?= $index + 1 ?></td>
-                                            <td><?= $item['kriteria'] ?></td>
+                                            <td><?= htmlspecialchars($item['kriteria']) ?></td>
                                             <td><?= $item['rank_piprecia'] ?></td>
                                             <td><?= number_format($item['bobot_piprecia'], 4) ?></td>
                                             <td>
@@ -227,7 +282,7 @@ if (mysqli_fetch_assoc($check_weights)['count'] > 0) {
                                                     Edit
                                                 </button>
 
-                                                <!-- Modal Edit - Remove weight input -->
+                                                <!-- Modal Edit -->
                                                 <div class="modal fade" id="editModal<?= $item['id'] ?>" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
                                                     <div class="modal-dialog" role="document">
                                                         <div class="modal-content">
@@ -242,7 +297,7 @@ if (mysqli_fetch_assoc($check_weights)['count'] > 0) {
                                                                     <input type="hidden" name="id" value="<?= $item['id'] ?>">
                                                                     <div class="form-group">
                                                                         <label>Nama Kriteria</label>
-                                                                        <input type="text" name="kriteria" class="form-control" value="<?= $item['kriteria'] ?>" required>
+                                                                        <input type="text" name="kriteria" class="form-control" value="<?= htmlspecialchars($item['kriteria']) ?>" required>
                                                                     </div>
                                                                     <div class="form-group">
                                                                         <label>Jenis Kriteria</label>

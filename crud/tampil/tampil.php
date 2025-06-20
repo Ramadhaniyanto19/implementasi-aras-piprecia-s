@@ -8,13 +8,15 @@ if (isset($_SESSION['username'])) {
 	$kriteria_list = [];
 	$kriteria_query = mysqli_query($koneksi, "SELECT * FROM bobot_kriteria ORDER BY id ASC");
 	while ($row = mysqli_fetch_assoc($kriteria_query)) {
-		$kriteria_list[$row['kriteria']] = [
+		// Convert criteria name to match database column naming convention
+		$col_name = strtolower(str_replace(' ', '_', $row['kriteria']));
+		$kriteria_list[$col_name] = [
+			'display_name' => $row['kriteria'],
 			'bobot' => $row['bobot_piprecia'],
 			'jenis' => $row['jenis']
 		];
 	}
 ?>
-
 	<div class="container-fluid w-full">
 		<div class="row">
 			<!-- Main Content -->
@@ -58,8 +60,8 @@ if (isset($_SESSION['username'])) {
 									<tr>
 										<th width="5%">No</th>
 										<th>Alternatif</th>
-										<?php foreach ($kriteria_list as $kriteria => $data): ?>
-											<th><?= htmlspecialchars($kriteria) ?></th>
+										<?php foreach ($kriteria_list as $col_name => $data): ?>
+											<th><?= htmlspecialchars($data['display_name']) ?></th>
 										<?php endforeach; ?>
 										<th width="15%">Aksi</th>
 									</tr>

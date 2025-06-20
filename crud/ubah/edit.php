@@ -2,13 +2,60 @@
 session_start();
 if (isset($_SESSION['username'])) {
 	include('../../koneksi/koneksi.php');
-	include('../../includes/header.php'); // Assuming this includes your head section
+	include('../../includes/header.php');
+
+	// Function to convert values based on criteria type
+	function convertValue($value, $type, $criteria_name)
+	{
+		if ($type == 'benefit') {
+			// Handle numeric benefit criteria (like height, weight)
+			if ($criteria_name == 'Tinggi Badan') {
+				if ($value <= 150) return 1;
+				elseif ($value < 160) return 2;
+				elseif ($value < 170) return 3;
+				elseif ($value < 180) return 4;
+				else return 5;
+			} elseif ($criteria_name == 'Berat Badan') {
+				if ($value < 45) return 1;
+				elseif ($value <= 54) return 2;
+				elseif ($value <= 64) return 3;
+				elseif ($value <= 74) return 4;
+				elseif ($value <= 84) return 5;
+				else return 1;
+			}
+		}
+
+		// Handle qualitative criteria
+		switch ($value) {
+			case 'Tidak Menarik':
+			case 'Tidak Baik':
+				return 1;
+			case 'Kurang Menarik':
+			case 'Kurang Baik':
+				return 2;
+			case 'Cukup':
+				return 3;
+			case 'Menarik':
+			case 'Baik':
+				return 4;
+			case 'Sangat Menarik':
+			case 'Sangat Baik':
+				return 5;
+			default:
+				return $value; // For already converted values
+		}
+	}
+
+	// Get all criteria from database
+	$criteria_query = mysqli_query($koneksi, "SELECT * FROM bobot_kriteria ORDER BY id ASC");
+	$criteria = [];
+	while ($row = mysqli_fetch_assoc($criteria_query)) {
+		$criteria[] = $row;
+	}
 ?>
 
 	<div class="container-fluid min-vh-100">
 		<div class="row">
-
-			<!-- Main Content -->
 			<main class="col-md-9 ms-sm-auto col-lg-12 px-md-4 py-4">
 				<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 					<h1 class="h2">Edit Data Alternatif</h1>
@@ -33,80 +80,35 @@ if (isset($_SESSION['username'])) {
 				}
 
 				if (isset($_POST['submit'])) {
-					if (isset($_POST['submit'])) {
-						$alternatif = $_POST['alternatif'];
-						$tinggi_badan = $_POST['tinggi_badan'];
-						$berat_badan = $_POST['berat_badan'];
-						$berpenampilan_menarik = $_POST['berpenampilan_menarik'];
-						$menguasai_panggung = $_POST['menguasai_panggung'];
+					$alternatif = $_POST['alternatif'];
+					$update_primer = "UPDATE data_primer SET alternatif='$alternatif'";
+					$update_konversi = "UPDATE data_konversi SET alternatif='$alternatif'";
 
-						if ($tinggi_badan <= 150) {
-							$tinggi_badann = 1;
-						} else if ($tinggi_badan < 160) {
-							$tinggi_badann = 2;
-						} else if ($tinggi_badan < 170) {
-							$tinggi_badann = 3;
-						} else if ($tinggi_badan < 180) {
-							$tinggi_badann = 4;
-						} else {
-							$tinggi_badann = 5;
-						}
+					// Process each criteria
+					foreach ($criteria as $criterion) {
+						$col_name = strtolower(str_replace(' ', '_', $criterion['kriteria']));
+						$value = $_POST[$col_name];
 
-						if ($berat_badan < 45) {
-							$berat_badann = 1;
-						} else if ($berat_badan <= 54) {
-							$berat_badann = 2;
-						} else if ($berat_badan <= 64) {
-							$berat_badann = 3;
-						} else if ($berat_badan <= 74) {
-							$berat_badann = 4;
-						} else if ($berat_badan <= 84) {
-							$berat_badann = 5;
-						} else {
-							$berat_badann = 1;
-						}
+						// Add to primer update
+						$update_primer .= ", $col_name='$value'";
 
-						if ($berpenampilan_menarik == 'Tidak Menarilk') {
-							$berpenampilan_menarikn = 1;
-						} else if ($berpenampilan_menarik == 'Kurang Menarik') {
-							$berpenampilan_menarikn = 2;
-						} else if ($berpenampilan_menarik == 'Cukup') {
-							$berpenampilan_menarikn = 3;
-						} else if ($berpenampilan_menarik == 'Menarik') {
-							$berpenampilan_menarikn = 4;
-						} else if ($berpenampilan_menarik == 'Sangat Menarik') {
-							$berpenampilan_menarikn = 5;
-						}
+						// Convert value based on criteria type
+						$converted_value = convertValue($value, $criterion['jenis'], $criterion['kriteria']);
 
-						if ($menguasai_panggung == 'Tidak Baik') {
-							$menguasai_panggungn = 1;
-						} else if ($menguasai_panggung == 'Kurang Baik') {
-							$menguasai_panggungn = 2;
-						} else if ($menguasai_panggung == 'Cukup') {
-							$menguasai_panggungn = 3;
-						} else if ($menguasai_panggung == 'Baik') {
-							$menguasai_panggungn = 4;
-						} else if ($menguasai_panggung == 'Sangat Baik') {
-							$menguasai_panggungn = 5;
-						}
-
-						$sql = mysqli_query($koneksi, "UPDATE data_primer SET alternatif='$alternatif', tinggi_badan='$tinggi_badan', berat_badan='$berat_badan', berpenampilan_menarik='$berpenampilan_menarik', menguasai_panggung='$menguasai_panggung' WHERE id='$id'") or die(mysqli_error($koneksi));
-
-						$sql = mysqli_query($koneksi, "UPDATE data_konversi SET alternatif='$alternatif', tinggi_badan='$tinggi_badann', berat_badan='$berat_badann', berpenampilan_menarik='$berpenampilan_menarikn', menguasai_panggung='$menguasai_panggungn' WHERE id='$id'") or die(mysqli_error($koneksi));
-
-						if ($sql) {
-							echo '<script>alert("Berhasil menyimpan data."); document.location="../../crud/tampil/tampil.php?id=' . $id . '";</script>';
-						} else {
-							echo '<div class="alert alert-warning">Gagal melakukan proses edit data.</div>';
-						}
+						// Add to konversi update
+						$update_konversi .= ", $col_name='$converted_value'";
 					}
 
+					$update_primer .= " WHERE id='$id'";
+					$update_konversi .= " WHERE id='$id'";
 
-					if ($sql) {
-						echo '<div class="alert alert-success">Berhasil menyimpan data.</div>';
-						echo '<script>document.location="../../crud/tampil/tampil.php";</script>';
+					$sql_primer = mysqli_query($koneksi, $update_primer) or die(mysqli_error($koneksi));
+					$sql_konversi = mysqli_query($koneksi, $update_konversi) or die(mysqli_error($koneksi));
+
+					if ($sql_primer && $sql_konversi) {
+						echo '<script>alert("Berhasil menyimpan data."); document.location="../../crud/tampil/tampil.php?id=' . $id . '";</script>';
 					} else {
-						echo '<div class="alert alert-danger">Gagal melakukan proses edit data.</div>';
+						echo '<div class="alert alert-warning">Gagal melakukan proses edit data.</div>';
 					}
 				}
 				?>
@@ -121,49 +123,45 @@ if (isset($_SESSION['username'])) {
 								</div>
 							</div>
 
-							<div class="row mb-3">
-								<label class="col-sm-3 col-form-label">Tinggi Badan (cm)</label>
-								<div class="col-sm-9">
-									<input type="number" name="tinggi_badan" class="form-control" value="<?php echo $data['tinggi_badan']; ?>" required>
-									<small class="text-muted">Contoh: 165</small>
+							<?php foreach ($criteria as $criterion):
+								$col_name = strtolower(str_replace(' ', '_', $criterion['kriteria']));
+								$current_value = isset($data[$col_name]) ? $data[$col_name] : '';
+							?>
+								<div class="row mb-3">
+									<label class="col-sm-3 col-form-label"><?php echo $criterion['kriteria']; ?></label>
+									<div class="col-sm-9">
+										<?php if ($criterion['jenis'] == 'benefit' && in_array($criterion['kriteria'], ['Tinggi Badan', 'Berat Badan'])): ?>
+											<!-- Numeric input for measurable criteria -->
+											<input type="number" name="<?php echo $col_name; ?>" class="form-control"
+												value="<?php echo $current_value; ?>" required>
+											<small class="text-muted">
+												<?php
+												if ($criterion['kriteria'] == 'Tinggi Badan') echo 'Dalam cm (contoh: 165)';
+												elseif ($criterion['kriteria'] == 'Berat Badan') echo 'Dalam kg (contoh: 55)';
+												?>
+											</small>
+										<?php else: ?>
+											<!-- Select input for qualitative criteria -->
+											<select name="<?php echo $col_name; ?>" class="form-select" required>
+												<option value="">- Pilih -</option>
+												<?php if (strpos($criterion['kriteria'], 'Menarik') !== false): ?>
+													<option value="Tidak Menarik" <?= ($current_value == 'Tidak Menarik') ? 'selected' : '' ?>>Tidak Menarik</option>
+													<option value="Kurang Menarik" <?= ($current_value == 'Kurang Menarik') ? 'selected' : '' ?>>Kurang Menarik</option>
+													<option value="Cukup" <?= ($current_value == 'Cukup') ? 'selected' : '' ?>>Cukup</option>
+													<option value="Menarik" <?= ($current_value == 'Menarik') ? 'selected' : '' ?>>Menarik</option>
+													<option value="Sangat Menarik" <?= ($current_value == 'Sangat Menarik') ? 'selected' : '' ?>>Sangat Menarik</option>
+												<?php else: ?>
+													<option value="Tidak Baik" <?= ($current_value == 'Tidak Baik') ? 'selected' : '' ?>>Tidak Baik</option>
+													<option value="Kurang Baik" <?= ($current_value == 'Kurang Baik') ? 'selected' : '' ?>>Kurang Baik</option>
+													<option value="Cukup" <?= ($current_value == 'Cukup') ? 'selected' : '' ?>>Cukup</option>
+													<option value="Baik" <?= ($current_value == 'Baik') ? 'selected' : '' ?>>Baik</option>
+													<option value="Sangat Baik" <?= ($current_value == 'Sangat Baik') ? 'selected' : '' ?>>Sangat Baik</option>
+												<?php endif; ?>
+											</select>
+										<?php endif; ?>
+									</div>
 								</div>
-							</div>
-
-							<div class="row mb-3">
-								<label class="col-sm-3 col-form-label">Berat Badan (kg)</label>
-								<div class="col-sm-9">
-									<input type="number" name="berat_badan" class="form-control" value="<?php echo $data['berat_badan']; ?>" required>
-									<small class="text-muted">Contoh: 55</small>
-								</div>
-							</div>
-
-							<div class="row mb-3">
-								<label class="col-sm-3 col-form-label">Berpenampilan Menarik</label>
-								<div class="col-sm-9">
-									<select name="berpenampilan_menarik" class="form-select" required>
-										<option value="">- Pilih -</option>
-										<option value="Tidak Menarik" <?= ($data['berpenampilan_menarik'] == 'Tidak Menarik') ? 'selected' : '' ?>>Tidak Menarik</option>
-										<option value="Kurang Menarik" <?= ($data['berpenampilan_menarik'] == 'Kurang Menarik') ? 'selected' : '' ?>>Kurang Menarik</option>
-										<option value="Cukup" <?= ($data['berpenampilan_menarik'] == 'Cukup') ? 'selected' : '' ?>>Cukup</option>
-										<option value="Menarik" <?= ($data['berpenampilan_menarik'] == 'Menarik') ? 'selected' : '' ?>>Menarik</option>
-										<option value="Sangat Menarik" <?= ($data['berpenampilan_menarik'] == 'Sangat Menarik') ? 'selected' : '' ?>>Sangat Menarik</option>
-									</select>
-								</div>
-							</div>
-
-							<div class="row mb-3">
-								<label class="col-sm-3 col-form-label">Menguasai Panggung</label>
-								<div class="col-sm-9">
-									<select name="menguasai_panggung" class="form-select" required>
-										<option value="">- Pilih -</option>
-										<option value="Tidak Baik" <?= ($data['menguasai_panggung'] == 'Tidak Baik') ? 'selected' : '' ?>>Tidak Baik</option>
-										<option value="Kurang Baik" <?= ($data['menguasai_panggung'] == 'Kurang Baik') ? 'selected' : '' ?>>Kurang Baik</option>
-										<option value="Cukup" <?= ($data['menguasai_panggung'] == 'Cukup') ? 'selected' : '' ?>>Cukup</option>
-										<option value="Baik" <?= ($data['menguasai_panggung'] == 'Baik') ? 'selected' : '' ?>>Baik</option>
-										<option value="Sangat Baik" <?= ($data['menguasai_panggung'] == 'Sangat Baik') ? 'selected' : '' ?>>Sangat Baik</option>
-									</select>
-								</div>
-							</div>
+							<?php endforeach; ?>
 
 							<div class="row mb-3">
 								<div class="col-sm-9 offset-sm-3">
@@ -183,7 +181,7 @@ if (isset($_SESSION['username'])) {
 	</div>
 
 <?php
-	include('../../includes/footer.php'); // Assuming this includes your footer and JS
+	include('../../includes/footer.php');
 } else {
 	echo "<script>alert('Silahkan Login Terlebih Dahulu');document.location.href='../../login/index.php';</script>";
 }
