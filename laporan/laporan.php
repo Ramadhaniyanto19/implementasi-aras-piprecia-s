@@ -9,11 +9,11 @@ $pdf->setAutoPageBreak(false);
 $pdf->setFont('Arial', 'B', 11);
 
 // Header
-$image1 = "../image/boesa.jpg";
+$image1 = "../image/boesa.png";
 $pdf->Image($image1, 40, 15, 20, 20);
-$pdf->text(85, 20, 'BOESA MANAGEMENT');
-$pdf->text(73, 27, 'Model Utusan Kontes Fashion Show');
-$pdf->text(95, 34, 'Tahun 2020');
+$pdf->text(85, 20, 'PIPARAS-DSS');
+$pdf->text(73, 27, 'Layanan Expedisi Terbaik menurut PIPARAS-DSS');
+$pdf->text(95, 34, 'Tahun 2024');
 
 $yi = 50;
 $ya = 50;
@@ -99,7 +99,7 @@ while ($data = mysqli_fetch_array($sql)) {
 }
 
 // Footer
-$pdf->text(142, $ya + 10, "MEDAN, " . $tgl);
-$pdf->text(130, $ya + 30, "Manager Boesa Management");
+$pdf->text(142, $ya + 10, "BANDUNG, " . $tgl);
+$pdf->text(130, $ya + 30, "PIPARAS-DSS");
 
 $pdf->output();

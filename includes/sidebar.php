@@ -3,10 +3,10 @@
 $currentFile = basename($_SERVER['PHP_SELF']);
 
 // Tentukan apakah harus pakai ../ di depan path
-$useBackPath = in_array($currentFile, ['tampil.php', 'tambah.php', 'edit.php']) ? '../../' : '../';
+$useBackPath = in_array($currentFile, ['tampil.php', 'tambah.php', 'edit.php', 'kriteria.php']) ? '../../' : '../';
 ?>
 
-<div class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse" id="sidebar">
+<div class="col-md-3 col-lg-2 d-md-block sidebar collapse" id="sidebar" style="background: linear-gradient(135deg, #2c3e50, #3498db);">
     <div class="position-sticky pt-3 h-100 d-flex flex-column">
         <!-- Mobile Toggle Button (visible only on small screens) -->
         <button class="d-md-none btn btn-dark w-100 text-left mb-3 position-fixed" type="button" data-toggle="collapse" data-target="#sidebar" aria-expanded="false" aria-controls="sidebar">
@@ -15,7 +15,7 @@ $useBackPath = in_array($currentFile, ['tampil.php', 'tambah.php', 'edit.php']) 
 
         <div class="text-center mb-4 mt-md-5 pt-md-3 w-100 px-2">
             <img src="<?php echo $useBackPath; ?>img/logo.png" alt="Logo" width="80" class="rounded-circle img-fluid" style="max-width: 100px;">
-            <h5 class="text-white mt-2 d-none d-md-block">SPK Model APA AJA GITU DAH</h5>
+            <h5 class="text-white mt-2 d-none d-md-block">PIPARAS-DSSPIPARAS-DSS</h5>
             <h6 class="text-white mt-2 d-md-none">SPK Model</h6>
             <hr class="bg-white w-75 d-none d-md-block">
         </div>
@@ -25,6 +25,12 @@ $useBackPath = in_array($currentFile, ['tampil.php', 'tambah.php', 'edit.php']) 
                 <a class="nav-link text-white hover-effect" href="<?php echo $useBackPath; ?>index.php">
                     <i class="fas fa-home mr-2"></i> <span class="d-none d-md-inline">Beranda</span>
                     <span class="d-md-none">Beranda</span>
+                </a>
+            </li>
+            <li class="nav-item mt-1 mt-md-3">
+                <a class="nav-link text-white hover-effect" href="<?php echo $useBackPath; ?>crud/kriteria/kriteria.php">
+                    <i class="fas fa-list mr-2"></i> <span class="d-none d-md-inline">Data Kriteria</span>
+                    <span class="d-md-none">Kriteria</span>
                 </a>
             </li>
             <li class="nav-item mt-1 mt-md-3">
@@ -55,14 +61,14 @@ $useBackPath = in_array($currentFile, ['tampil.php', 'tambah.php', 'edit.php']) 
         <!-- Logout Button - Stays at bottom -->
         <div class="mt-auto">
             <div class="w-100 px-3 pb-3 d-none d-md-block">
-                <a class="nav-link text-danger hover-effect" href="<?php echo $useBackPath; ?>logout/logout.php">
+                <a class="nav-link text-white font-weight-bold hover-effect" href="<?php echo $useBackPath; ?>logout/logout.php">
                     <i class="fas fa-sign-out-alt mr-2"></i> Logout
                 </a>
             </div>
 
             <!-- Mobile Logout Button -->
             <div class="w-100 px-3 pb-3 d-md-none bg-dark">
-                <a class="nav-link text-danger hover-effect" href="<?php echo $useBackPath; ?>logout/logout.php">
+                <a class="nav-link text-white font-weight-bold hover-effect" href="<?php echo $useBackPath; ?>logout/logout.php">
                     <i class="fas fa-sign-out-alt mr-2"></i> Logout
                 </a>
             </div>
@@ -139,6 +145,7 @@ $useBackPath = in_array($currentFile, ['tampil.php', 'tambah.php', 'edit.php']) 
                 (currentUrl === '' && linkUrl === 'index.php') ||
                 (currentUrl === 'tampil.php' && linkUrl === 'tampil.php') ||
                 (currentUrl === 'tambah.php' && linkUrl === 'tampil.php') ||
+                (currentUrl === 'kriteria.php' && linkUrl === 'kriteria.php') ||
                 (currentUrl === 'edit.php' && linkUrl === 'tampil.php')) {
                 $(this).addClass('active');
             }

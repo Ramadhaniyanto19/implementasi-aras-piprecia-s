@@ -9,7 +9,7 @@ session_start();
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>SPK-ARAS | Sistem Pendukung Keputusan</title>
+    <title>PIPARAS-DSS (PIPRECIA-ARAS Decision Support System)</title>
     <link rel="icon" href="img/logo.png">
 
     <!-- Bootstrap 4 CSS -->
@@ -420,10 +420,10 @@ session_start();
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6">
-                    <h1 class="hero-title animate__animated animate__fadeInDown">Sistem Pendukung Keputusan <span>Pemilihan Model</span></h1>
+                    <h1 class="hero-title animate__animated animate__fadeInDown">Sistem Pendukung Keputusan <span>Pemilihan Pelayanan Expedisi Terbaik</span></h1>
                     <p class="hero-description animate__animated animate__fadeIn animate__delay-1s">
-                        Menggunakan metode ARAS dan PIPRECIA-S untuk membantu BOESA Management dalam seleksi model terbaik
-                        untuk berbagai kontes fashion show dengan penilaian yang objektif dan terukur.
+                        Menggunakan metode ARAS dan PIPRECIA-S untuk membantu dalam memilih jasa pengiriman terbaik
+                        untuk memudahkan dan mempercepat proses pengiriman barang.
                     </p>
                     <div class="d-flex flex-wrap animate__animated animate__fadeInUp animate__delay-2s">
                         <?php if (!isset($_SESSION['username'])) { ?>
@@ -484,7 +484,7 @@ session_start();
     <!-- Footer -->
     <footer class="footer">
         <div class="container text-center">
-            <p class="footer-text">© 2025 SPK-ARAS | Sistem Pendukung Keputusan</p>
+            <p class="footer-text">© 2025 PIPARAS-DSS | (PIPRECIA-ARAS Decision Support System)</p>
         </div>
     </footer>
 

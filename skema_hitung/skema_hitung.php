@@ -3,6 +3,16 @@ session_start();
 if (isset($_SESSION['username'])) {
 	include('../koneksi/koneksi.php');
 	include('../includes/header.php');
+
+	// Ambil semua kriteria dari database
+	$kriteria_list = [];
+	$kriteria_query = mysqli_query($koneksi, "SELECT * FROM bobot_kriteria ORDER BY id ASC");
+	while ($row = mysqli_fetch_assoc($kriteria_query)) {
+		$kriteria_list[$row['kriteria']] = [
+			'bobot' => $row['bobot_piprecia'],
+			'jenis' => $row['jenis']
+		];
+	}
 ?>
 
 	<div class="container-fluid">
@@ -22,29 +32,32 @@ if (isset($_SESSION['username'])) {
 						<?php
 						$sql = mysqli_query($koneksi, "SELECT * FROM data_konversi");
 						if (mysqli_num_rows($sql) > 0) {
+							// Buat header tabel
 							echo '
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Alternatif</th>
-                                        <th>Tinggi Badan (C1)</th>
-                                        <th>Berat Badan (C2)</th>
-                                        <th>Berpenampilan Menarik (C3)</th>
-                                        <th>Menguasai Panggung (C4)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
-							while ($data = mysqli_fetch_assoc($sql)) {
-								echo '
-                                    <tr>
-                                        <td>' . $data['alternatif'] . '</td>
-                                        <td>' . $data['tinggi_badan'] . ' cm</td>
-                                        <td>' . $data['berat_badan'] . ' kg</td>
-                                        <td>' . $data['berpenampilan_menarik'] . '</td>
-                                        <td>' . $data['menguasai_panggung'] . '</td>
-                                    </tr>';
+                                        <th>Alternatif</th>';
+
+							// Header kolom kriteria
+							foreach ($kriteria_list as $kriteria => $data) {
+								echo '<th>' . htmlspecialchars($kriteria) . '</th>';
 							}
+
+							echo '</tr></thead><tbody>';
+
+							// Data baris
+							while ($data = mysqli_fetch_assoc($sql)) {
+								echo '<tr><td>' . htmlspecialchars($data['alternatif']) . '</td>';
+
+								foreach ($kriteria_list as $kriteria => $data_kriteria) {
+									echo '<td>' . htmlspecialchars($data[$kriteria]) . '</td>';
+								}
+
+								echo '</tr>';
+							}
+
 							echo '</tbody></table></div>';
 						}
 						?>
@@ -63,44 +76,54 @@ if (isset($_SESSION['username'])) {
 						$aras_matrix = [];
 						$sql = mysqli_query($koneksi, "SELECT * FROM data_matrik");
 						if (mysqli_num_rows($sql) > 0) {
+							// Buat header tabel
 							echo '
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Alternatif</th>
-                                        <th>Tinggi Badan (C1)</th>
-                                        <th>Berat Badan (C2)</th>
-                                        <th>Berpenampilan Menarik (C3)</th>
-                                        <th>Menguasai Panggung (C4)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
-							while ($data = mysqli_fetch_assoc($sql)) {
-								$aras_matrix[$data['alternatif']] = [
-									'tinggi_badan' => $data['tinggi_badan'],
-									'berat_badan' => $data['berat_badan'],
-									'berpenampilan_menarik' => $data['berpenampilan_menarik'],
-									'menguasai_panggung' => $data['menguasai_panggung']
-								];
-								echo '
-                                    <tr>
-                                        <td>' . $data['alternatif'] . '</td>
-                                        <td>' . $data['tinggi_badan'] . '</td>
-                                        <td>' . $data['berat_badan'] . '</td>
-                                        <td>' . $data['berpenampilan_menarik'] . '</td>
-                                        <td>' . $data['menguasai_panggung'] . '</td>
-                                    </tr>';
-							}
-							echo '</tbody></table></div>';
+                                        <th>Alternatif</th>';
 
-							// Find max values for each criterion
-							$max_values = [
-								'tinggi_badan' => max(array_column($aras_matrix, 'tinggi_badan')),
-								'berat_badan' => max(array_column($aras_matrix, 'berat_badan')),
-								'berpenampilan_menarik' => max(array_column($aras_matrix, 'berpenampilan_menarik')),
-								'menguasai_panggung' => max(array_column($aras_matrix, 'menguasai_panggung'))
-							];
+							// Header kolom kriteria
+							foreach ($kriteria_list as $kriteria => $data) {
+								echo '<th>' . htmlspecialchars($kriteria) . '</th>';
+							}
+
+							echo '</tr></thead><tbody>';
+
+							// Data baris dan cari nilai maksimal/minimal
+							$max_min_values = [];
+							foreach ($kriteria_list as $kriteria => $data) {
+								$max_min_values[$kriteria] = [
+									'max' => 0,
+									'min' => PHP_INT_MAX,
+									'jenis' => $data['jenis']
+								];
+							}
+
+							while ($data = mysqli_fetch_assoc($sql)) {
+								$alt_data = [];
+								echo '<tr><td>' . htmlspecialchars($data['alternatif']) . '</td>';
+
+								foreach ($kriteria_list as $kriteria => $data_kriteria) {
+									$value = $data[$kriteria];
+									$alt_data[$kriteria] = $value;
+									echo '<td>' . htmlspecialchars($value) . '</td>';
+
+									// Update nilai maksimal/minimal
+									if ($value > $max_min_values[$kriteria]['max']) {
+										$max_min_values[$kriteria]['max'] = $value;
+									}
+									if ($value < $max_min_values[$kriteria]['min']) {
+										$max_min_values[$kriteria]['min'] = $value;
+									}
+								}
+
+								$aras_matrix[$data['alternatif']] = $alt_data;
+								echo '</tr>';
+							}
+
+							echo '</tbody></table></div>';
 						}
 						?>
 					</div>
@@ -117,47 +140,51 @@ if (isset($_SESSION['username'])) {
 							<li>Untuk kriteria benefit: X<sub>ij</sub> / X<sub>max</sub></li>
 							<li>Untuk kriteria cost: X<sub>min</sub> / X<sub>ij</sub></li>
 						</ul>
-						<p>Dimana:</p>
+						<p>Jenis Kriteria:</p>
 						<ul>
-							<li>C1 (Tinggi Badan): Benefit</li>
-							<li>C2 (Berat Badan): Cost</li>
-							<li>C3 (Berpenampilan Menarik): Benefit</li>
-							<li>C4 (Menguasai Panggung): Benefit</li>
+							<?php foreach ($kriteria_list as $kriteria => $data): ?>
+								<li><?= htmlspecialchars($kriteria) ?>: <?= ucfirst($data['jenis']) ?></li>
+							<?php endforeach; ?>
 						</ul>
 
 						<?php
-						if (!empty($aras_matrix) && !empty($max_values)) {
+						if (!empty($aras_matrix) && !empty($max_min_values)) {
+							// Buat header tabel
 							echo '
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Alternatif</th>
-                                        <th>Tinggi Badan (C1)</th>
-                                        <th>Berat Badan (C2)</th>
-                                        <th>Berpenampilan Menarik (C3)</th>
-                                        <th>Menguasai Panggung (C4)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
+                                        <th>Alternatif</th>';
 
+							// Header kolom kriteria
+							foreach ($kriteria_list as $kriteria => $data) {
+								echo '<th>' . htmlspecialchars($kriteria) . '</th>';
+							}
+
+							echo '</tr></thead><tbody>';
+
+							// Data baris dengan nilai normalisasi
 							foreach ($aras_matrix as $alt => $values) {
-								// Calculate normalized values
-								$normalized = [
-									'tinggi_badan' => $values['tinggi_badan'] / $max_values['tinggi_badan'],
-									'berat_badan' => $max_values['berat_badan'] / $values['berat_badan'],
-									'berpenampilan_menarik' => $values['berpenampilan_menarik'] / $max_values['berpenampilan_menarik'],
-									'menguasai_panggung' => $values['menguasai_panggung'] / $max_values['menguasai_panggung']
-								];
+								echo '<tr><td>' . htmlspecialchars($alt) . '</td>';
 
-								echo '
-                                    <tr>
-                                        <td>' . $alt . '</td>
-                                        <td>' . number_format($normalized['tinggi_badan'], 4) . '</td>
-                                        <td>' . number_format($normalized['berat_badan'], 4) . '</td>
-                                        <td>' . number_format($normalized['berpenampilan_menarik'], 4) . '</td>
-                                        <td>' . number_format($normalized['menguasai_panggung'], 4) . '</td>
-                                    </tr>';
+								foreach ($kriteria_list as $kriteria => $data) {
+									$value = $values[$kriteria];
+									$max = $max_min_values[$kriteria]['max'];
+									$min = $max_min_values[$kriteria]['min'];
+									$jenis = $max_min_values[$kriteria]['jenis'];
+
+									// Normalisasi berdasarkan jenis kriteria
+									if ($jenis == 'benefit') {
+										$normalized = ($max == 0) ? 0 : $value / $max;
+									} else { // cost
+										$normalized = ($value == 0) ? 0 : $min / $value;
+									}
+
+									echo '<td>' . number_format($normalized, 4) . '</td>';
+								}
+
+								echo '</tr>';
 							}
 
 							echo '</tbody></table></div>';
@@ -174,45 +201,44 @@ if (isset($_SESSION['username'])) {
 					<div class="card-body">
 						<p>Proses pembobotan matriks yang sudah dinormalisasi dengan bobot dari PIPRECIA-S.</p>
 						<?php
-						// Get weights from PIPRECIA-S
-						$weights = [];
-						$sql = mysqli_query($koneksi, "SELECT kriteria, bobot_piprecia FROM bobot_kriteria");
-						while ($row = mysqli_fetch_assoc($sql)) {
-							$weights[$row['kriteria']] = $row['bobot_piprecia'];
-						}
-
-						if (!empty($aras_matrix) && !empty($max_values) && !empty($weights)) {
+						if (!empty($aras_matrix) && !empty($max_min_values) && !empty($kriteria_list)) {
+							// Buat header tabel
 							echo '
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Alternatif</th>
-                                        <th>Tinggi Badan (C1)<br>Bobot: ' . number_format($weights['tinggi_badan'], 4) . '</th>
-                                        <th>Berat Badan (C2)<br>Bobot: ' . number_format($weights['berat_badan'], 4) . '</th>
-                                        <th>Berpenampilan Menarik (C3)<br>Bobot: ' . number_format($weights['berpenampilan_menarik'], 4) . '</th>
-                                        <th>Menguasai Panggung (C4)<br>Bobot: ' . number_format($weights['menguasai_panggung'], 4) . '</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
+                                        <th>Alternatif</th>';
 
+							// Header kolom kriteria dengan bobot
+							foreach ($kriteria_list as $kriteria => $data) {
+								echo '<th>' . htmlspecialchars($kriteria) . '<br>Bobot: ' . number_format($data['bobot'], 4) . '</th>';
+							}
+
+							echo '</tr></thead><tbody>';
+
+							// Data baris dengan nilai terbobot
 							foreach ($aras_matrix as $alt => $values) {
-								// Calculate weighted normalized values
-								$weighted = [
-									'tinggi_badan' => ($values['tinggi_badan'] / $max_values['tinggi_badan']) * $weights['tinggi_badan'],
-									'berat_badan' => ($max_values['berat_badan'] / $values['berat_badan']) * $weights['berat_badan'],
-									'berpenampilan_menarik' => ($values['berpenampilan_menarik'] / $max_values['berpenampilan_menarik']) * $weights['berpenampilan_menarik'],
-									'menguasai_panggung' => ($values['menguasai_panggung'] / $max_values['menguasai_panggung']) * $weights['menguasai_panggung']
-								];
+								echo '<tr><td>' . htmlspecialchars($alt) . '</td>';
 
-								echo '
-                                    <tr>
-                                        <td>' . $alt . '</td>
-                                        <td>' . number_format($weighted['tinggi_badan'], 4) . '</td>
-                                        <td>' . number_format($weighted['berat_badan'], 4) . '</td>
-                                        <td>' . number_format($weighted['berpenampilan_menarik'], 4) . '</td>
-                                        <td>' . number_format($weighted['menguasai_panggung'], 4) . '</td>
-                                    </tr>';
+								foreach ($kriteria_list as $kriteria => $data) {
+									$value = $values[$kriteria];
+									$max = $max_min_values[$kriteria]['max'];
+									$min = $max_min_values[$kriteria]['min'];
+									$jenis = $max_min_values[$kriteria]['jenis'];
+									$bobot = $data['bobot'];
+
+									// Normalisasi dan pembobotan
+									if ($jenis == 'benefit') {
+										$weighted = ($max == 0) ? 0 : ($value / $max) * $bobot;
+									} else { // cost
+										$weighted = ($value == 0) ? 0 : ($min / $value) * $bobot;
+									}
+
+									echo '<td>' . number_format($weighted, 4) . '</td>';
+								}
+
+								echo '</tr>';
 							}
 
 							echo '</tbody></table></div>';
@@ -229,7 +255,7 @@ if (isset($_SESSION['username'])) {
 					<div class="card-body">
 						<p>Nilai optimum untuk setiap alternatif dihitung dengan menjumlahkan semua nilai kriteria yang sudah dinormalisasi dan terbobot.</p>
 						<?php
-						if (!empty($aras_matrix) && !empty($max_values) && !empty($weights)) {
+						if (!empty($aras_matrix) && !empty($max_min_values) && !empty($kriteria_list)) {
 							$aras_results = [];
 
 							echo '
@@ -245,26 +271,35 @@ if (isset($_SESSION['username'])) {
                                 <tbody>';
 
 							foreach ($aras_matrix as $alt => $values) {
-								// Calculate ARAS score
-								$score =
-									($values['tinggi_badan'] / $max_values['tinggi_badan']) * $weights['tinggi_badan'] +
-									($max_values['berat_badan'] / $values['berat_badan']) * $weights['berat_badan'] +
-									($values['berpenampilan_menarik'] / $max_values['berpenampilan_menarik']) * $weights['berpenampilan_menarik'] +
-									($values['menguasai_panggung'] / $max_values['menguasai_panggung']) * $weights['menguasai_panggung'];
+								$calculation_parts = [];
+								$score = 0;
+
+								foreach ($kriteria_list as $kriteria => $data) {
+									$value = $values[$kriteria];
+									$max = $max_min_values[$kriteria]['max'];
+									$min = $max_min_values[$kriteria]['min'];
+									$jenis = $max_min_values[$kriteria]['jenis'];
+									$bobot = $data['bobot'];
+
+									if ($jenis == 'benefit') {
+										$part = ($max == 0) ? 0 : ($value / $max) * $bobot;
+										$calculation_parts[] = '(' . $value . '/' . $max . ')×' . $bobot;
+									} else { // cost
+										$part = ($value == 0) ? 0 : ($min / $value) * $bobot;
+										$calculation_parts[] = '(' . $min . '/' . $value . ')×' . $bobot;
+									}
+
+									$score += $part;
+								}
 
 								$aras_results[$alt] = $score;
 
 								echo '
-                                    <tr>
-                                        <td>' . $alt . '</td>
-                                        <td>
-                                            (' . $values['tinggi_badan'] . '/' . $max_values['tinggi_badan'] . ')×' . $weights['tinggi_badan'] . ' + 
-                                            (' . $max_values['berat_badan'] . '/' . $values['berat_badan'] . ')×' . $weights['berat_badan'] . ' + 
-                                            (' . $values['berpenampilan_menarik'] . '/' . $max_values['berpenampilan_menarik'] . ')×' . $weights['berpenampilan_menarik'] . ' + 
-                                            (' . $values['menguasai_panggung'] . '/' . $max_values['menguasai_panggung'] . ')×' . $weights['menguasai_panggung'] . '
-                                        </td>
-                                        <td>' . number_format($score, 4) . '</td>
-                                    </tr>';
+                                <tr>
+                                    <td>' . htmlspecialchars($alt) . '</td>
+                                    <td>' . implode(' + ', $calculation_parts) . '</td>
+                                    <td>' . number_format($score, 4) . '</td>
+                                </tr>';
 							}
 
 							echo '</tbody></table></div>';
@@ -284,35 +319,36 @@ if (isset($_SESSION['username'])) {
 						$piprecia_matrix = [];
 						$sql = mysqli_query($koneksi, "SELECT * FROM normalisasi_piprecia");
 						if (mysqli_num_rows($sql) > 0) {
+							// Buat header tabel
 							echo '
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Alternatif</th>
-                                        <th>Tinggi Badan (C1)</th>
-                                        <th>Berat Badan (C2)</th>
-                                        <th>Berpenampilan Menarik (C3)</th>
-                                        <th>Menguasai Panggung (C4)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
-							while ($data = mysqli_fetch_assoc($sql)) {
-								$piprecia_matrix[$data['alternatif']] = [
-									'tinggi_badan' => $data['tinggi_badan'],
-									'berat_badan' => $data['berat_badan'],
-									'berpenampilan_menarik' => $data['berpenampilan_menarik'],
-									'menguasai_panggung' => $data['menguasai_panggung']
-								];
-								echo '
-                                    <tr>
-                                        <td>' . $data['alternatif'] . '</td>
-                                        <td>' . number_format($data['tinggi_badan'], 4) . '</td>
-                                        <td>' . number_format($data['berat_badan'], 4) . '</td>
-                                        <td>' . number_format($data['berpenampilan_menarik'], 4) . '</td>
-                                        <td>' . number_format($data['menguasai_panggung'], 4) . '</td>
-                                    </tr>';
+                                        <th>Alternatif</th>';
+
+							// Header kolom kriteria
+							foreach ($kriteria_list as $kriteria => $data) {
+								echo '<th>' . htmlspecialchars($kriteria) . '</th>';
 							}
+
+							echo '</tr></thead><tbody>';
+
+							// Data baris
+							while ($data = mysqli_fetch_assoc($sql)) {
+								$alt_data = [];
+								echo '<tr><td>' . htmlspecialchars($data['alternatif']) . '</td>';
+
+								foreach ($kriteria_list as $kriteria => $data_kriteria) {
+									$value = $data[$kriteria];
+									$alt_data[$kriteria] = $value;
+									echo '<td>' . number_format($value, 4) . '</td>';
+								}
+
+								$piprecia_matrix[$data['alternatif']] = $alt_data;
+								echo '</tr>';
+							}
+
 							echo '</tbody></table></div>';
 						}
 						?>
@@ -345,11 +381,11 @@ if (isset($_SESSION['username'])) {
 							while ($data = mysqli_fetch_assoc($sql)) {
 								$piprecia_results[$data['alternatif']] = $data['nilai_akhir'];
 								echo '
-                                    <tr>
-                                        <td>' . $rank . '</td>
-                                        <td>' . $data['alternatif'] . '</td>
-                                        <td>' . number_format($data['nilai_akhir'], 4) . '</td>
-                                    </tr>';
+                                <tr>
+                                    <td>' . $rank . '</td>
+                                    <td>' . htmlspecialchars($data['alternatif']) . '</td>
+                                    <td>' . number_format($data['nilai_akhir'], 4) . '</td>
+                                </tr>';
 								$rank++;
 							}
 							echo '</tbody></table></div>';
@@ -376,11 +412,11 @@ if (isset($_SESSION['username'])) {
 							$combined_results = [];
 
 							foreach ($aras_results as $alt => $score) {
-								$normalized_aras[$alt] = $score / $max_aras;
+								$normalized_aras[$alt] = ($max_aras == 0) ? 0 : $score / $max_aras;
 							}
 
 							foreach ($piprecia_results as $alt => $score) {
-								$normalized_piprecia[$alt] = $score / $max_piprecia;
+								$normalized_piprecia[$alt] = ($max_piprecia == 0) ? 0 : $score / $max_piprecia;
 							}
 
 							// Calculate combined scores
@@ -414,13 +450,13 @@ if (isset($_SESSION['username'])) {
 							$rank = 1;
 							foreach ($combined_results as $alt => $scores) {
 								echo '
-                                    <tr>
-                                        <td>' . $rank . '</td>
-                                        <td>' . $alt . '</td>
-                                        <td>' . number_format($scores['combined'], 4) . '</td>
-                                        <td>' . number_format($scores['aras'], 4) . '</td>
-                                        <td>' . number_format($scores['piprecia'], 4) . '</td>
-                                    </tr>';
+                                <tr>
+                                    <td>' . $rank . '</td>
+                                    <td>' . htmlspecialchars($alt) . '</td>
+                                    <td>' . number_format($scores['combined'], 4) . '</td>
+                                    <td>' . number_format($scores['aras'], 4) . '</td>
+                                    <td>' . number_format($scores['piprecia'], 4) . '</td>
+                                </tr>';
 								$rank++;
 							}
 
