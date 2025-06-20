@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 19, 2025 at 11:01 AM
+-- Generation Time: Jun 20, 2025 at 09:47 AM
 -- Server version: 10.1.38-MariaDB
 -- PHP Version: 5.6.40
 
@@ -31,18 +31,19 @@ SET time_zone = "+00:00";
 CREATE TABLE `bobot_kriteria` (
   `id` int(11) NOT NULL,
   `kriteria` varchar(50) NOT NULL,
-  `bobot_piprecia` float NOT NULL
+  `bobot_piprecia` float NOT NULL,
+  `jenis` enum('benefit','cost') NOT NULL DEFAULT 'benefit'
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `bobot_kriteria`
 --
 
-INSERT INTO `bobot_kriteria` (`id`, `kriteria`, `bobot_piprecia`) VALUES
-(1, 'tinggi_badan', 0.35),
-(2, 'berat_badan', 0.12),
-(3, 'berpenampilan_menarik', 0.35),
-(4, 'menguasai_panggung', 0.18);
+INSERT INTO `bobot_kriteria` (`id`, `kriteria`, `bobot_piprecia`, `jenis`) VALUES
+(1, 'tinggi_badan', 0.35, 'benefit'),
+(2, 'berat_badan', 0.12, 'benefit'),
+(3, 'berpenampilan_menarik', 0.35, 'benefit'),
+(4, 'menguasai_panggung', 0.18, 'benefit');
 
 -- --------------------------------------------------------
 
@@ -58,26 +59,6 @@ CREATE TABLE `data_konversi` (
   `berpenampilan_menarik` varchar(15) NOT NULL,
   `menguasai_panggung` varchar(15) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
---
--- Dumping data for table `data_konversi`
---
-
-INSERT INTO `data_konversi` (`id`, `alternatif`, `tinggi_badan`, `berat_badan`, `berpenampilan_menarik`, `menguasai_panggung`) VALUES
-(1, 'Haris Kurniawa', 4, 5, '4', '2'),
-(2, 'Ryan Miranda', 4, 3, '5', '5'),
-(3, 'Reza Arianda', 5, 3, '4', '4'),
-(4, 'Philip', 5, 3, '4', '5'),
-(5, 'Dara Risty', 4, 2, '5', '4'),
-(6, 'Putri Afriani', 4, 3, '3', '2'),
-(7, 'Nadia', 3, 2, '4', '4'),
-(8, 'Ariansyah', 4, 3, '5', '5'),
-(9, 'Nanda', 5, 4, '5', '4'),
-(10, 'Olivia', 4, 2, '5', '4'),
-(11, 'Meghna Sharma', 5, 3, '5', '5'),
-(12, 'Fawaz Rizaka', 4, 3, '4', '5'),
-(13, 'Meihani Putri', 3, 2, '3', '4'),
-(15, 'Zura Alvira', 5, 4, '4', '5');
 
 -- --------------------------------------------------------
 
@@ -148,7 +129,7 @@ INSERT INTO `data_primer` (`id`, `alternatif`, `tinggi_badan`, `berat_badan`, `b
 (11, 'Meghna Sharma', 183, 60, 'Sangat Menarik', 'Sangat Baik'),
 (12, 'Fawaz Rizaka', 179, 58, 'Menarik', 'Sangat Baik'),
 (13, 'Meihani Putri', 165, 50, 'Cukup', 'Baik'),
-(15, 'Zura Alvira', 180, 65, 'Menarik', 'Sangat Baik');
+(14, 'Zura Alvira', 180, 65, 'Menarik', 'Sangat Baik');
 
 -- --------------------------------------------------------
 
@@ -451,13 +432,13 @@ ALTER TABLE `normalisasi_terbobot`
 -- AUTO_INCREMENT for table `bobot_kriteria`
 --
 ALTER TABLE `bobot_kriteria`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `data_konversi`
 --
 ALTER TABLE `data_konversi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `data_matrik`
@@ -469,7 +450,7 @@ ALTER TABLE `data_matrik`
 -- AUTO_INCREMENT for table `data_primer`
 --
 ALTER TABLE `data_primer`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `hasil`
