@@ -68,7 +68,7 @@ if (isset($_SESSION['username'])) {
 								</thead>
 								<tbody>
 									<?php
-									$sql = mysqli_query($koneksi, "SELECT * FROM data_primer") or die(mysqli_error($koneksi));
+									$sql = mysqli_query($koneksi, "SELECT * FROM data_matrik") or die(mysqli_error($koneksi));
 									if (mysqli_num_rows($sql) > 0) {
 										$no = 1;
 										while ($row = mysqli_fetch_assoc($sql)) {

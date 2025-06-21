@@ -9,7 +9,7 @@ if (isset($_SESSION['username'])) {
 		<div class="row w-full">
 			<main class="col-md-9 w-full col-lg-12 px-md-4 py-4">
 				<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-					<h1 class="h2">Hasil Perankingan Gabungan</h1>
+					<h1 class="h2">Hasil Perankingan ARAS dengan Bobot PIPRECIA-S</h1>
 					<div class="btn-toolbar mb-2 mb-md-0">
 						<a href="../skema_hitung/skema_hitung.php" class="btn btn-warning mr-2">
 							<i class="fas fa-project-diagram"></i> View Skema
@@ -25,119 +25,102 @@ if (isset($_SESSION['username'])) {
 				$kriteria_list = [];
 				$kriteria_query = mysqli_query($koneksi, "SELECT * FROM bobot_kriteria");
 				while ($row = mysqli_fetch_assoc($kriteria_query)) {
-					$kriteria_list[$row['kriteria']] = [
+					$col_name = strtolower(str_replace(' ', '_', $row['kriteria']));
+					$kriteria_list[$col_name] = [
+						'nama' => $row['kriteria'],
 						'bobot' => $row['bobot_piprecia'],
 						'jenis' => $row['jenis']
 					];
 				}
 
-				// 2. Hitung ulang ARAS dengan bobot dari database
-				$aras_scores = [];
+				// 2. Ambil data alternatif dari data_matrik
+				$alternatif_data = [];
 				$matrik_query = mysqli_query($koneksi, "SELECT * FROM data_matrik WHERE alternatif != '-'");
 
-				// Cari nilai maksimal/minimal setiap kriteria
+				// 3. Hitung nilai maks/min untuk normalisasi
 				$max_min_values = [];
-				foreach ($kriteria_list as $kriteria => $data) {
-					$max_min_values[$kriteria] = [
+				foreach ($kriteria_list as $col_name => $data) {
+					$max_min_values[$col_name] = [
 						'max' => 0,
 						'min' => PHP_INT_MAX,
 						'jenis' => $data['jenis']
 					];
 				}
 
-				$matrik_data = [];
+				// Simpan data dan cari max/min
 				while ($row = mysqli_fetch_assoc($matrik_query)) {
-					$alt_data = [];
-					foreach ($kriteria_list as $kriteria => $data) {
-						$alt_data[$kriteria] = $row[$kriteria];
+					$alt_name = $row['alternatif'];
+					$alternatif_data[$alt_name] = [];
 
-						// Update nilai maksimal/minimal
-						if ($row[$kriteria] > $max_min_values[$kriteria]['max']) {
-							$max_min_values[$kriteria]['max'] = $row[$kriteria];
+					foreach ($kriteria_list as $col_name => $data) {
+						$value = $row[$col_name];
+						$alternatif_data[$alt_name][$col_name] = $value;
+
+						// Update max/min
+						if ($value > $max_min_values[$col_name]['max']) {
+							$max_min_values[$col_name]['max'] = $value;
 						}
-						if ($row[$kriteria] < $max_min_values[$kriteria]['min']) {
-							$max_min_values[$kriteria]['min'] = $row[$kriteria];
+						if ($value < $max_min_values[$col_name]['min']) {
+							$max_min_values[$col_name]['min'] = $value;
 						}
 					}
-					$matrik_data[$row['alternatif']] = $alt_data;
 				}
 
-				// Hitung nilai ARAS dengan bobot dari database
-				foreach ($matrik_data as $alt => $data) {
-					$weighted_sum = 0;
+				// 4. Hitung nilai ARAS dengan bobot PIPRECIA-S
+				$aras_results = [];
+				foreach ($alternatif_data as $alt_name => $kriteria_values) {
+					$total_score = 0;
+					$detail_values = [];
 
-					foreach ($data as $kriteria => $value) {
-						$jenis = $max_min_values[$kriteria]['jenis'];
-						$max = $max_min_values[$kriteria]['max'];
-						$min = $max_min_values[$kriteria]['min'];
+					foreach ($kriteria_values as $col_name => $value) {
+						$kriteria = $kriteria_list[$col_name];
+						$max = $max_min_values[$col_name]['max'];
+						$min = $max_min_values[$col_name]['min'];
 
-						// Normalisasi berdasarkan jenis kriteria
-						if ($jenis == 'benefit') {
+						// Normalisasi sesuai jenis kriteria
+						if ($kriteria['jenis'] == 'benefit') {
 							$normalized = ($max == 0) ? 0 : $value / $max;
-						} else { // cost
+						} else {
 							$normalized = ($value == 0) ? 0 : $min / $value;
 						}
 
-						$weighted_sum += $normalized * $kriteria_list[$kriteria]['bobot'];
-					}
+						// Hitung nilai terbobot
+						$weighted = $normalized * $kriteria['bobot'];
+						$total_score += $weighted;
 
-					$aras_scores[$alt] = $weighted_sum;
-				}
-
-				// 3. Ambil hasil PIPRECIA-S dari database
-				$piprecia_scores = [];
-				$piprecia_query = mysqli_query($koneksi, "SELECT alternatif, nilai_akhir FROM hasil_piprecia");
-				while ($row = mysqli_fetch_assoc($piprecia_query)) {
-					$piprecia_scores[$row['alternatif']] = $row['nilai_akhir'];
-				}
-
-				// 4. Normalisasi skor ke range 0-1
-				$max_aras = max($aras_scores);
-				$max_piprecia = max($piprecia_scores);
-
-				foreach ($aras_scores as $alt => $score) {
-					$aras_scores[$alt] = ($max_aras == 0) ? 0 : $score / $max_aras;
-				}
-
-				foreach ($piprecia_scores as $alt => $score) {
-					$piprecia_scores[$alt] = ($max_piprecia == 0) ? 0 : $score / $max_piprecia;
-				}
-
-				// 5. Hitung skor gabungan dengan bobot
-				$combined_scores = [];
-				foreach ($aras_scores as $alt => $score) {
-					if (isset($piprecia_scores[$alt])) {
-						$combined_scores[$alt] = [
-							'combined' => (0.6 * $score) + (0.4 * $piprecia_scores[$alt]),
-							'aras' => $score,
-							'piprecia' => $piprecia_scores[$alt],
-							'details' => $matrik_data[$alt]
+						// Simpan detail untuk ditampilkan
+						$detail_values[$col_name] = [
+							'nilai' => $value,
+							'normalized' => $normalized,
+							'weighted' => $weighted
 						];
 					}
+
+					$aras_results[$alt_name] = [
+						'total_score' => $total_score,
+						'details' => $detail_values
+					];
 				}
 
-				// 6. Urutkan berdasarkan skor gabungan
-				arsort($combined_scores);
+				// 5. Urutkan berdasarkan nilai tertinggi
+				arsort($aras_results);
 
-				// Prepare data for charts
+				// Siapkan data untuk chart
 				$chart_labels = [];
-				$chart_combined = [];
-				$chart_aras = [];
-				$chart_piprecia = [];
+				$chart_scores = [];
 				$rank = 1;
-				foreach ($combined_scores as $alt => $scores) {
-					$chart_labels[] = $alt;
-					$chart_combined[] = $scores['combined'];
-					$chart_aras[] = $scores['aras'];
-					$chart_piprecia[] = $scores['piprecia'];
+
+				foreach ($aras_results as $alt_name => $data) {
+					$chart_labels[] = $alt_name;
+					$chart_scores[] = $data['total_score'];
 					$rank++;
 				}
 				?>
 
-				<!-- Combined Results Table -->
+				<!-- Hasil Perankingan -->
 				<div class="card mb-4">
 					<div class="card-header bg-primary text-white">
-						<h4 class="mb-0">Hasil Gabungan ARAS dan PIPRECIA-S</h4>
+						<h4 class="mb-0">Hasil Perankingan ARAS dengan Bobot PIPRECIA-S</h4>
 					</div>
 					<div class="card-body">
 						<div class="table-responsive">
@@ -146,27 +129,23 @@ if (isset($_SESSION['username'])) {
 									<tr>
 										<th>Ranking</th>
 										<th>Alternatif</th>
-										<th>Skor Gabungan</th>
-										<th>Skor ARAS</th>
-										<th>Skor PIPRECIA-S</th>
+										<th>Nilai ARAS</th>
 										<th>Detail</th>
 									</tr>
 								</thead>
 								<tbody>
 									<?php
 									$rank = 1;
-									foreach ($combined_scores as $alt => $scores) {
-										$modal_id = 'detailModal_' . md5($alt);
+									foreach ($aras_results as $alt_name => $data) {
+										$modal_id = 'detailModal_' . md5($alt_name);
 										echo '
                                     <tr>
                                         <td>' . $rank . '</td>
-                                        <td>' . htmlspecialchars($alt) . '</td>
-                                        <td>' . number_format($scores['combined'], 4) . '</td>
-                                        <td>' . number_format($scores['aras'], 4) . '</td>
-                                        <td>' . number_format($scores['piprecia'], 4) . '</td>
+                                        <td>' . htmlspecialchars($alt_name) . '</td>
+                                        <td>' . number_format($data['total_score'], 4) . '</td>
                                         <td>
                                             <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#' . $modal_id . '">
-                                                <i class="fas fa-info-circle"></i>
+                                                <i class="fas fa-info-circle"></i> Detail
                                             </button>
                                         </td>
                                     </tr>
@@ -177,70 +156,39 @@ if (isset($_SESSION['username'])) {
 								</tbody>
 							</table>
 						</div>
-
-						<div class="alert alert-info mt-3">
-							<strong>Keterangan:</strong>
-							<ul>
-								<li>Skor gabungan merupakan kombinasi tertimbang (60% ARAS + 40% PIPRECIA-S)</li>
-								<li>ARAS dihitung ulang menggunakan bobot dari PIPRECIA-S untuk konsistensi</li>
-								<li>Klik tombol detail untuk melihat nilai kriteria</li>
-							</ul>
-						</div>
 					</div>
 				</div>
 
-				<!-- Charts Section -->
-				<div class="row mb-4">
-					<!-- Combined Scores Chart -->
-					<div class="col-md-6">
-						<div class="card">
-							<div class="card-header bg-primary text-white">
-								<h5 class="mb-0">Perbandingan Skor Gabungan</h5>
-							</div>
-							<div class="card-body">
-								<canvas id="combinedChart" height="300"></canvas>
-							</div>
-						</div>
+				<!-- Chart Hasil ARAS -->
+				<div class="card mb-4">
+					<div class="card-header bg-success text-white">
+						<h5 class="mb-0">Grafik Hasil Perankingan ARAS</h5>
 					</div>
-
-					<!-- Method Comparison Chart -->
-					<div class="col-md-6">
-						<div class="card">
-							<div class="card-header bg-success text-white">
-								<h5 class="mb-0">Perbandingan Metode ARAS vs PIPRECIA-S</h5>
-							</div>
-							<div class="card-body">
-								<canvas id="methodComparisonChart" height="300"></canvas>
-							</div>
-						</div>
+					<div class="card-body">
+						<canvas id="arasChart" height="300"></canvas>
 					</div>
 				</div>
 
-				<!-- Criteria Weights Chart -->
-				<div class="row mb-4">
-					<div class="col-md-12">
-						<div class="card">
-							<div class="card-header bg-info text-white">
-								<h5 class="mb-0">Distribusi Bobot Kriteria</h5>
-							</div>
-							<div class="card-body">
-								<canvas id="criteriaWeightsChart" height="150"></canvas>
-							</div>
-						</div>
+				<!-- Chart Bobot Kriteria -->
+				<div class="card">
+					<div class="card-header bg-info text-white">
+						<h5 class="mb-0">Distribusi Bobot Kriteria PIPRECIA-S</h5>
+					</div>
+					<div class="card-body">
+						<canvas id="criteriaChart" height="150"></canvas>
 					</div>
 				</div>
 
-				<!-- Modal for Details -->
+				<!-- Modal untuk Detail Nilai -->
 				<?php
-				$rank = 1;
-				foreach ($combined_scores as $alt => $scores) {
-					$modal_id = 'detailModal_' . md5($alt);
+				foreach ($aras_results as $alt_name => $data) {
+					$modal_id = 'detailModal_' . md5($alt_name);
 					echo '
                 <div class="modal fade" id="' . $modal_id . '" tabindex="-1" role="dialog" aria-labelledby="' . $modal_id . 'Label" aria-hidden="true">
                     <div class="modal-dialog modal-lg" role="document">
                         <div class="modal-content">
                             <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title" id="' . $modal_id . 'Label">Detail Nilai: ' . htmlspecialchars($alt) . '</h5>
+                                <h5 class="modal-title" id="' . $modal_id . 'Label">Detail Nilai: ' . htmlspecialchars($alt_name) . '</h5>
                                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
@@ -251,38 +199,34 @@ if (isset($_SESSION['username'])) {
                                         <thead class="thead-light">
                                             <tr>
                                                 <th>Kriteria</th>
-                                                <th>Nilai</th>
+                                                <th>Nilai Awal</th>
                                                 <th>Normalisasi</th>
                                                 <th>Bobot</th>
-                                                <th>Jenis</th>
+                                                <th>Nilai Terbobot</th>
                                             </tr>
                                         </thead>
                                         <tbody>';
 
-					foreach ($kriteria_list as $kriteria => $data) {
-						$value = $scores['details'][$kriteria];
-						$max = $max_min_values[$kriteria]['max'];
-						$min = $max_min_values[$kriteria]['min'];
-						$jenis = $data['jenis'];
-
-						if ($jenis == 'benefit') {
-							$normalized = ($max == 0) ? 0 : $value / $max;
-						} else {
-							$normalized = ($value == 0) ? 0 : $min / $value;
-						}
-
+					foreach ($data['details'] as $col_name => $detail) {
+						$kriteria = $kriteria_list[$col_name];
 						echo '
                                             <tr>
-                                                <td>' . htmlspecialchars($kriteria) . '</td>
-                                                <td>' . $value . '</td>
-                                                <td>' . number_format($normalized, 4) . '</td>
-                                                <td>' . number_format($data['bobot'], 4) . '</td>
-                                                <td><span class="badge badge-' . ($jenis == 'benefit' ? 'success' : 'danger') . '">' . ucfirst($jenis) . '</span></td>
+                                                <td>' . htmlspecialchars($kriteria['nama']) . '</td>
+                                                <td>' . $detail['nilai'] . '</td>
+                                                <td>' . number_format($detail['normalized'], 4) . '</td>
+                                                <td>' . number_format($kriteria['bobot'], 4) . '</td>
+                                                <td>' . number_format($detail['weighted'], 4) . '</td>
                                             </tr>';
 					}
 
 					echo '
                                         </tbody>
+                                        <tfoot class="font-weight-bold">
+                                            <tr>
+                                                <td colspan="4" class="text-right">Total Nilai ARAS:</td>
+                                                <td>' . number_format($data['total_score'], 4) . '</td>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
                             </div>
@@ -293,21 +237,20 @@ if (isset($_SESSION['username'])) {
                     </div>
                 </div>
                 ';
-					$rank++;
 				}
 				?>
 
 				<!-- Chart Scripts -->
 				<script>
-					// Combined Scores Chart (Bar Chart)
-					const combinedCtx = document.getElementById('combinedChart').getContext('2d');
-					const combinedChart = new Chart(combinedCtx, {
+					// Chart Hasil ARAS
+					const arasCtx = document.getElementById('arasChart').getContext('2d');
+					const arasChart = new Chart(arasCtx, {
 						type: 'bar',
 						data: {
 							labels: <?php echo json_encode($chart_labels); ?>,
 							datasets: [{
-								label: 'Skor Gabungan',
-								data: <?php echo json_encode($chart_combined); ?>,
+								label: 'Nilai ARAS',
+								data: <?php echo json_encode($chart_scores); ?>,
 								backgroundColor: 'rgba(54, 162, 235, 0.7)',
 								borderColor: 'rgba(54, 162, 235, 1)',
 								borderWidth: 1
@@ -320,7 +263,7 @@ if (isset($_SESSION['username'])) {
 									beginAtZero: true,
 									title: {
 										display: true,
-										text: 'Nilai Skor'
+										text: 'Nilai ARAS'
 									}
 								},
 								x: {
@@ -334,7 +277,7 @@ if (isset($_SESSION['username'])) {
 								tooltip: {
 									callbacks: {
 										label: function(context) {
-											return 'Skor: ' + context.raw.toFixed(4);
+											return 'Nilai: ' + context.raw.toFixed(4);
 										}
 									}
 								}
@@ -342,67 +285,12 @@ if (isset($_SESSION['username'])) {
 						}
 					});
 
-					// Method Comparison Chart (Line Chart)
-					const comparisonCtx = document.getElementById('methodComparisonChart').getContext('2d');
-					const comparisonChart = new Chart(comparisonCtx, {
-						type: 'line',
-						data: {
-							labels: <?php echo json_encode($chart_labels); ?>,
-							datasets: [{
-									label: 'ARAS',
-									data: <?php echo json_encode($chart_aras); ?>,
-									borderColor: 'rgba(255, 99, 132, 1)',
-									backgroundColor: 'rgba(255, 99, 132, 0.1)',
-									borderWidth: 2,
-									tension: 0.1,
-									fill: true
-								},
-								{
-									label: 'PIPRECIA-S',
-									data: <?php echo json_encode($chart_piprecia); ?>,
-									borderColor: 'rgba(75, 192, 192, 1)',
-									backgroundColor: 'rgba(75, 192, 192, 0.1)',
-									borderWidth: 2,
-									tension: 0.1,
-									fill: true
-								}
-							]
-						},
-						options: {
-							responsive: true,
-							scales: {
-								y: {
-									beginAtZero: true,
-									title: {
-										display: true,
-										text: 'Nilai Skor'
-									}
-								},
-								x: {
-									title: {
-										display: true,
-										text: 'Alternatif'
-									}
-								}
-							},
-							plugins: {
-								tooltip: {
-									callbacks: {
-										label: function(context) {
-											return context.dataset.label + ': ' + context.raw.toFixed(4);
-										}
-									}
-								}
-							}
-						}
-					});
-
-					// Criteria Weights Chart (Pie Chart)
-					const criteriaCtx = document.getElementById('criteriaWeightsChart').getContext('2d');
+					// Chart Bobot Kriteria
+					const criteriaCtx = document.getElementById('criteriaChart').getContext('2d');
 					const criteriaChart = new Chart(criteriaCtx, {
 						type: 'pie',
 						data: {
-							labels: <?php echo json_encode(array_keys($kriteria_list)); ?>,
+							labels: <?php echo json_encode(array_column($kriteria_list, 'nama')); ?>,
 							datasets: [{
 								data: <?php echo json_encode(array_column($kriteria_list, 'bobot')); ?>,
 								backgroundColor: [
@@ -433,8 +321,7 @@ if (isset($_SESSION['username'])) {
 										label: function(context) {
 											const label = context.label || '';
 											const value = context.raw || 0;
-											const percentage = Math.round((value / <?php echo array_sum(array_column($kriteria_list, 'bobot')); ?>) * 100);
-											return `${label}: ${value.toFixed(4)} (${percentage}%)`;
+											return label + ': ' + value.toFixed(4);
 										}
 									}
 								}

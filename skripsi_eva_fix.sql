@@ -1,14 +1,13 @@
 -- phpMyAdmin SQL Dump
--- version 4.8.5
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 20, 2025 at 11:32 AM
--- Server version: 10.1.38-MariaDB
--- PHP Version: 5.6.40
+-- Waktu pembuatan: 21 Jun 2025 pada 05.14
+-- Versi server: 10.4.32-MariaDB
+-- Versi PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -25,7 +24,7 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `bobot_kriteria`
+-- Struktur dari tabel `bobot_kriteria`
 --
 
 CREATE TABLE `bobot_kriteria` (
@@ -37,59 +36,105 @@ CREATE TABLE `bobot_kriteria` (
   `kj` float DEFAULT NULL,
   `qj` float DEFAULT NULL,
   `bobot_piprecia` float DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data untuk tabel `bobot_kriteria`
+--
+
+INSERT INTO `bobot_kriteria` (`id`, `kriteria`, `jenis`, `rank_piprecia`, `sj`, `kj`, `qj`, `bobot_piprecia`) VALUES
+(25, 'Waktu Respon', 'cost', 1, 0, 1, 1, 0.57379),
+(26, 'Ketersediaan Layanan', 'benefit', 2, 1.2, 2.2, 0.454545, 0.260814),
+(27, 'Kepuasan Pengguna', 'benefit', 3, 1.4, 2.4, 0.189394, 0.108672),
+(28, 'Biaya Layanan', 'cost', 4, 1.6, 2.6, 0.0728438, 0.041797),
+(29, 'Kemudahan Aplikasi', 'benefit', 5, 1.8, 2.8, 0.0260157, 0.0149275);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `data_konversi`
+-- Struktur dari tabel `data_konversi`
 --
 
 CREATE TABLE `data_konversi` (
   `id` int(11) NOT NULL,
   `alternatif` varchar(50) NOT NULL,
-  `tinggi_badan` int(10) NOT NULL,
-  `berat_badan` int(5) NOT NULL,
-  `berpenampilan_menarik` varchar(15) NOT NULL,
-  `menguasai_panggung` varchar(15) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  `waktu_respon` decimal(10,2) DEFAULT NULL,
+  `ketersediaan_layanan` decimal(10,2) DEFAULT NULL,
+  `kepuasan_pengguna` decimal(10,2) DEFAULT NULL,
+  `biaya_layanan` decimal(10,2) DEFAULT NULL,
+  `kemudahan_aplikasi` decimal(10,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data untuk tabel `data_konversi`
+--
+
+INSERT INTO `data_konversi` (`id`, `alternatif`, `waktu_respon`, `ketersediaan_layanan`, `kepuasan_pengguna`, `biaya_layanan`, `kemudahan_aplikasi`) VALUES
+(1, 'POS', 4.00, 1.00, 4.00, 4.00, 5.00),
+(2, 'SICEPAT', 5.00, 5.00, 5.00, 1.00, 5.00);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `data_matrik`
+-- Struktur dari tabel `data_matrik`
 --
 
 CREATE TABLE `data_matrik` (
   `id` int(10) NOT NULL,
-  `alternatif` varchar(50) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  `alternatif` varchar(50) NOT NULL,
+  `waktu_respon` int(11) DEFAULT NULL,
+  `ketersediaan_layanan` int(11) DEFAULT NULL,
+  `kepuasan_pengguna` int(11) DEFAULT NULL,
+  `biaya_layanan` decimal(10,2) DEFAULT NULL,
+  `kemudahan_aplikasi` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data untuk tabel `data_matrik`
+--
+
+INSERT INTO `data_matrik` (`id`, `alternatif`, `waktu_respon`, `ketersediaan_layanan`, `kepuasan_pengguna`, `biaya_layanan`, `kemudahan_aplikasi`) VALUES
+(4, 'POS', 4, 1, 4, 4.00, 5),
+(5, 'SICEPAT', 5, 5, 5, 1.00, 5);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `data_primer`
+-- Struktur dari tabel `data_primer`
 --
 
 CREATE TABLE `data_primer` (
   `id` int(11) NOT NULL,
-  `alternatif` varchar(50) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  `alternatif` varchar(50) NOT NULL,
+  `waktu_respon` int(11) DEFAULT NULL,
+  `ketersediaan_layanan` int(11) DEFAULT NULL,
+  `kepuasan_pengguna` int(11) DEFAULT NULL,
+  `biaya_layanan` decimal(10,2) DEFAULT NULL,
+  `kemudahan_aplikasi` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data untuk tabel `data_primer`
+--
+
+INSERT INTO `data_primer` (`id`, `alternatif`, `waktu_respon`, `ketersediaan_layanan`, `kepuasan_pengguna`, `biaya_layanan`, `kemudahan_aplikasi`) VALUES
+(1, 'POS', 0, 0, 0, 0.00, 0),
+(2, 'SICEPAT', 0, 0, 0, 0.00, 0);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `hasil`
+-- Struktur dari tabel `hasil`
 --
 
 CREATE TABLE `hasil` (
   `no` int(11) NOT NULL,
   `alternatif` varchar(50) NOT NULL,
   `nilai_optimum` float NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `hasil`
+-- Dumping data untuk tabel `hasil`
 --
 
 INSERT INTO `hasil` (`no`, `alternatif`, `nilai_optimum`) VALUES
@@ -112,17 +157,17 @@ INSERT INTO `hasil` (`no`, `alternatif`, `nilai_optimum`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `hasil2`
+-- Struktur dari tabel `hasil2`
 --
 
 CREATE TABLE `hasil2` (
   `no` int(11) NOT NULL,
   `alternatif` varchar(50) NOT NULL,
   `nilai_akhir` float NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `hasil2`
+-- Dumping data untuk tabel `hasil2`
 --
 
 INSERT INTO `hasil2` (`no`, `alternatif`, `nilai_akhir`) VALUES
@@ -144,17 +189,17 @@ INSERT INTO `hasil2` (`no`, `alternatif`, `nilai_akhir`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `hasil_piprecia`
+-- Struktur dari tabel `hasil_piprecia`
 --
 
 CREATE TABLE `hasil_piprecia` (
   `no` int(11) NOT NULL,
   `alternatif` varchar(50) NOT NULL,
   `nilai_akhir` float NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `hasil_piprecia`
+-- Dumping data untuk tabel `hasil_piprecia`
 --
 
 INSERT INTO `hasil_piprecia` (`no`, `alternatif`, `nilai_akhir`) VALUES
@@ -176,17 +221,17 @@ INSERT INTO `hasil_piprecia` (`no`, `alternatif`, `nilai_akhir`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `login`
+-- Struktur dari tabel `login`
 --
 
 CREATE TABLE `login` (
   `id` int(11) NOT NULL,
   `username` varchar(20) NOT NULL,
   `password` varchar(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `login`
+-- Dumping data untuk tabel `login`
 --
 
 INSERT INTO `login` (`id`, `username`, `password`) VALUES
@@ -195,7 +240,7 @@ INSERT INTO `login` (`id`, `username`, `password`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `normalisasi`
+-- Struktur dari tabel `normalisasi`
 --
 
 CREATE TABLE `normalisasi` (
@@ -205,10 +250,10 @@ CREATE TABLE `normalisasi` (
   `berat_badan` float NOT NULL,
   `berpenampilan_menarik` float NOT NULL,
   `menguasai_panggung` float NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `normalisasi`
+-- Dumping data untuk tabel `normalisasi`
 --
 
 INSERT INTO `normalisasi` (`id`, `alternatif`, `tinggi_badan`, `berat_badan`, `berpenampilan_menarik`, `menguasai_panggung`) VALUES
@@ -231,7 +276,7 @@ INSERT INTO `normalisasi` (`id`, `alternatif`, `tinggi_badan`, `berat_badan`, `b
 -- --------------------------------------------------------
 
 --
--- Table structure for table `normalisasi_piprecia`
+-- Struktur dari tabel `normalisasi_piprecia`
 --
 
 CREATE TABLE `normalisasi_piprecia` (
@@ -241,10 +286,10 @@ CREATE TABLE `normalisasi_piprecia` (
   `berat_badan` float NOT NULL,
   `berpenampilan_menarik` float NOT NULL,
   `menguasai_panggung` float NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `normalisasi_piprecia`
+-- Dumping data untuk tabel `normalisasi_piprecia`
 --
 
 INSERT INTO `normalisasi_piprecia` (`id`, `alternatif`, `tinggi_badan`, `berat_badan`, `berpenampilan_menarik`, `menguasai_panggung`) VALUES
@@ -266,7 +311,7 @@ INSERT INTO `normalisasi_piprecia` (`id`, `alternatif`, `tinggi_badan`, `berat_b
 -- --------------------------------------------------------
 
 --
--- Table structure for table `normalisasi_terbobot`
+-- Struktur dari tabel `normalisasi_terbobot`
 --
 
 CREATE TABLE `normalisasi_terbobot` (
@@ -276,10 +321,10 @@ CREATE TABLE `normalisasi_terbobot` (
   `berat_badan` float NOT NULL,
   `berpenampilan_menarik` float NOT NULL,
   `menguasai_panggung` float NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `normalisasi_terbobot`
+-- Dumping data untuk tabel `normalisasi_terbobot`
 --
 
 INSERT INTO `normalisasi_terbobot` (`id`, `alternatif`, `tinggi_badan`, `berat_badan`, `berpenampilan_menarik`, `menguasai_panggung`) VALUES
@@ -304,137 +349,137 @@ INSERT INTO `normalisasi_terbobot` (`id`, `alternatif`, `tinggi_badan`, `berat_b
 --
 
 --
--- Indexes for table `bobot_kriteria`
+-- Indeks untuk tabel `bobot_kriteria`
 --
 ALTER TABLE `bobot_kriteria`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `data_konversi`
+-- Indeks untuk tabel `data_konversi`
 --
 ALTER TABLE `data_konversi`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `data_matrik`
+-- Indeks untuk tabel `data_matrik`
 --
 ALTER TABLE `data_matrik`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `data_primer`
+-- Indeks untuk tabel `data_primer`
 --
 ALTER TABLE `data_primer`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `hasil`
+-- Indeks untuk tabel `hasil`
 --
 ALTER TABLE `hasil`
   ADD PRIMARY KEY (`no`);
 
 --
--- Indexes for table `hasil2`
+-- Indeks untuk tabel `hasil2`
 --
 ALTER TABLE `hasil2`
   ADD PRIMARY KEY (`no`);
 
 --
--- Indexes for table `hasil_piprecia`
+-- Indeks untuk tabel `hasil_piprecia`
 --
 ALTER TABLE `hasil_piprecia`
   ADD PRIMARY KEY (`no`);
 
 --
--- Indexes for table `login`
+-- Indeks untuk tabel `login`
 --
 ALTER TABLE `login`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `normalisasi`
+-- Indeks untuk tabel `normalisasi`
 --
 ALTER TABLE `normalisasi`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `normalisasi_piprecia`
+-- Indeks untuk tabel `normalisasi_piprecia`
 --
 ALTER TABLE `normalisasi_piprecia`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `normalisasi_terbobot`
+-- Indeks untuk tabel `normalisasi_terbobot`
 --
 ALTER TABLE `normalisasi_terbobot`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- AUTO_INCREMENT untuk tabel yang dibuang
 --
 
 --
--- AUTO_INCREMENT for table `bobot_kriteria`
+-- AUTO_INCREMENT untuk tabel `bobot_kriteria`
 --
 ALTER TABLE `bobot_kriteria`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
--- AUTO_INCREMENT for table `data_konversi`
+-- AUTO_INCREMENT untuk tabel `data_konversi`
 --
 ALTER TABLE `data_konversi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT for table `data_matrik`
+-- AUTO_INCREMENT untuk tabel `data_matrik`
 --
 ALTER TABLE `data_matrik`
-  MODIFY `id` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT for table `data_primer`
+-- AUTO_INCREMENT untuk tabel `data_primer`
 --
 ALTER TABLE `data_primer`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT for table `hasil`
+-- AUTO_INCREMENT untuk tabel `hasil`
 --
 ALTER TABLE `hasil`
   MODIFY `no` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT for table `hasil2`
+-- AUTO_INCREMENT untuk tabel `hasil2`
 --
 ALTER TABLE `hasil2`
   MODIFY `no` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT for table `hasil_piprecia`
+-- AUTO_INCREMENT untuk tabel `hasil_piprecia`
 --
 ALTER TABLE `hasil_piprecia`
   MODIFY `no` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT for table `login`
+-- AUTO_INCREMENT untuk tabel `login`
 --
 ALTER TABLE `login`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- AUTO_INCREMENT for table `normalisasi`
+-- AUTO_INCREMENT untuk tabel `normalisasi`
 --
 ALTER TABLE `normalisasi`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT for table `normalisasi_piprecia`
+-- AUTO_INCREMENT untuk tabel `normalisasi_piprecia`
 --
 ALTER TABLE `normalisasi_piprecia`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT for table `normalisasi_terbobot`
+-- AUTO_INCREMENT untuk tabel `normalisasi_terbobot`
 --
 ALTER TABLE `normalisasi_terbobot`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;

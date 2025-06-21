@@ -17,14 +17,31 @@ function updateTablesStructure($koneksi)
 
     while ($row = mysqli_fetch_assoc($result)) {
         $col_name = strtolower(str_replace(' ', '_', $row['kriteria']));
-        $col_type = ($row['jenis'] == 'benefit') ? 'INT' : 'DECIMAL(10,2)';
-        $columns[$col_name] = $col_type;
+        $columns[$col_name] = [
+            'primer_type' => ($row['jenis'] == 'benefit') ? 'INT' : 'DECIMAL(10,2)',
+            'konversi_type' => 'DECIMAL(10,2)' // Tipe seragam untuk data_konversi
+        ];
     }
 
-    // Update both tables
-    $tables = ['data_primer', 'data_matrik'];
+    // Update all three tables
+    $tables = [
+        'data_primer' => 'primer_type',
+        'data_matrik' => 'primer_type',
+        'data_konversi' => 'konversi_type'
+    ];
 
-    foreach ($tables as $table) {
+    foreach ($tables as $table => $type_key) {
+        // Check if table exists, if not create it
+        $table_check = mysqli_query($koneksi, "SHOW TABLES LIKE '$table'");
+        if (mysqli_num_rows($table_check) == 0) {
+            $create_query = "CREATE TABLE $table (
+                id INT(11) NOT NULL AUTO_INCREMENT,
+                alternatif VARCHAR(50) NOT NULL,
+                PRIMARY KEY (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+            mysqli_query($koneksi, $create_query);
+        }
+
         // Get existing columns
         $existing_columns = [];
         $result = mysqli_query($koneksi, "SHOW COLUMNS FROM $table");
@@ -33,9 +50,10 @@ function updateTablesStructure($koneksi)
         }
 
         // Add new columns if they don't exist
-        foreach ($columns as $col_name => $col_type) {
+        foreach ($columns as $col_name => $col_data) {
             if (!in_array($col_name, $existing_columns)) {
-                $query = "ALTER TABLE $table ADD COLUMN $col_name $col_type NULL";
+                $col_type = $col_data[$type_key];
+                $query = "ALTER TABLE $table ADD COLUMN `$col_name` $col_type NULL";
                 mysqli_query($koneksi, $query);
             }
         }
@@ -44,12 +62,13 @@ function updateTablesStructure($koneksi)
         foreach ($existing_columns as $col) {
             $protected_columns = ['id', 'alternatif'];
             if (!in_array($col, $protected_columns) && !array_key_exists($col, $columns)) {
-                $query = "ALTER TABLE $table DROP COLUMN $col";
+                $query = "ALTER TABLE $table DROP COLUMN `$col`";
                 mysqli_query($koneksi, $query);
             }
         }
     }
 }
+
 
 // Function to calculate PIPRECIA weights
 function calculatePIPRECIAWeights($koneksi)
