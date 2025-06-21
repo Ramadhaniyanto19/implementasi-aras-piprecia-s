@@ -159,88 +159,35 @@ if (isset($_SESSION['username'])) {
 					</div>
 				</div>
 
-				<!-- Chart Hasil ARAS -->
-				<div class="card mb-4">
-					<div class="card-header bg-success text-white">
-						<h5 class="mb-0">Grafik Hasil Perankingan ARAS</h5>
+				<!-- Ganti bagian Chart Hasil ARAS dan Chart Bobot Kriteria dengan ini: -->
+
+				<div class="row">
+					<!-- Chart Hasil ARAS -->
+					<div class="col-md-8">
+						<div class="card mb-4">
+							<div class="card-header bg-success text-white">
+								<h5 class="mb-0">Grafik Hasil Perankingan ARAS</h5>
+							</div>
+							<div class="card-body">
+								<canvas id="arasChart" height="250"></canvas>
+							</div>
+						</div>
 					</div>
-					<div class="card-body">
-						<canvas id="arasChart" height="300"></canvas>
+
+					<!-- Chart Bobot Kriteria -->
+					<div class="col-md-4">
+						<div class="card mb-4">
+							<div class="card-header bg-info text-white">
+								<h5 class="mb-0">Bobot Kriteria PIPRECIA-S</h5>
+							</div>
+							<div class="card-body">
+								<canvas id="criteriaChart" height="250"></canvas>
+							</div>
+						</div>
 					</div>
 				</div>
 
-				<!-- Chart Bobot Kriteria -->
-				<div class="card">
-					<div class="card-header bg-info text-white">
-						<h5 class="mb-0">Distribusi Bobot Kriteria PIPRECIA-S</h5>
-					</div>
-					<div class="card-body">
-						<canvas id="criteriaChart" height="150"></canvas>
-					</div>
-				</div>
-
-				<!-- Modal untuk Detail Nilai -->
-				<?php
-				foreach ($aras_results as $alt_name => $data) {
-					$modal_id = 'detailModal_' . md5($alt_name);
-					echo '
-                <div class="modal fade" id="' . $modal_id . '" tabindex="-1" role="dialog" aria-labelledby="' . $modal_id . 'Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title" id="' . $modal_id . 'Label">Detail Nilai: ' . htmlspecialchars($alt_name) . '</h5>
-                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <thead class="thead-light">
-                                            <tr>
-                                                <th>Kriteria</th>
-                                                <th>Nilai Awal</th>
-                                                <th>Normalisasi</th>
-                                                <th>Bobot</th>
-                                                <th>Nilai Terbobot</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>';
-
-					foreach ($data['details'] as $col_name => $detail) {
-						$kriteria = $kriteria_list[$col_name];
-						echo '
-                                            <tr>
-                                                <td>' . htmlspecialchars($kriteria['nama']) . '</td>
-                                                <td>' . $detail['nilai'] . '</td>
-                                                <td>' . number_format($detail['normalized'], 4) . '</td>
-                                                <td>' . number_format($kriteria['bobot'], 4) . '</td>
-                                                <td>' . number_format($detail['weighted'], 4) . '</td>
-                                            </tr>';
-					}
-
-					echo '
-                                        </tbody>
-                                        <tfoot class="font-weight-bold">
-                                            <tr>
-                                                <td colspan="4" class="text-right">Total Nilai ARAS:</td>
-                                                <td>' . number_format($data['total_score'], 4) . '</td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                ';
-				}
-				?>
-
-				<!-- Chart Scripts -->
+				<!-- Script untuk Chart (tidak berubah) -->
 				<script>
 					// Chart Hasil ARAS
 					const arasCtx = document.getElementById('arasChart').getContext('2d');
@@ -258,6 +205,7 @@ if (isset($_SESSION['username'])) {
 						},
 						options: {
 							responsive: true,
+							maintainAspectRatio: false,
 							scales: {
 								y: {
 									beginAtZero: true,
@@ -312,6 +260,7 @@ if (isset($_SESSION['username'])) {
 						},
 						options: {
 							responsive: true,
+							maintainAspectRatio: false,
 							plugins: {
 								legend: {
 									position: 'right',
