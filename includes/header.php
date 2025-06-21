@@ -161,12 +161,12 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-3 d-none d-lg-block">
+            <div class="col-2 d-none d-lg-block">
             </div>
             <?php include('sidebar.php'); ?>
 
             <!-- Main Content -->
-            <main role="main" class="main-content col-9">
+            <main role="main" class="main-content col-10">
                 <!-- Your page content goes here -->
-                <div class="w-full">
+                <div class="w-full" style="margin-left: -100px;">
                     <!-- Content will start below the fixed navbar -->

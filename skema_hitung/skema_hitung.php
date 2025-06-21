@@ -21,7 +21,7 @@ if (isset($_SESSION['username'])) {
 
 	<div class="container-fluid">
 		<div class="row">
-			<main class="col-md-9 ms-sm-auto col-lg-12 px-md-4 py-4">
+			<main class="col-md-9 ms-sm-auto col-lg-11 px-md-4 py-4">
 				<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 					<h1 class="h2">Hasil Perhitungan ARAS dengan Pembobotan PIPRECIA-S</h1>
 				</div>
@@ -32,7 +32,16 @@ if (isset($_SESSION['username'])) {
 						<h4>1. Data Konversi Awal</h4>
 					</div>
 					<div class="card-body">
-						<p>Data mentah yang telah dikonversi ke nilai numerik.</p>
+						<div class="alert alert-info">
+							<strong>Keterangan Konversi:</strong>
+							<ul>
+								<li>Kriteria kualitatif dikonversi ke skala numerik:
+									<br>"Tidak Baik"=1, "Kurang Baik"=2, "Cukup"=3, "Baik"=4, "Sangat Baik"=5
+								</li>
+								<li>Kriteria kuantitatif menggunakan nilai asli</li>
+							</ul>
+						</div>
+
 						<?php
 						$sql = mysqli_query($koneksi, "SELECT * FROM data_konversi");
 						if (mysqli_num_rows($sql) > 0) {
@@ -53,7 +62,6 @@ if (isset($_SESSION['username'])) {
 								echo '<tr><td>' . htmlspecialchars($data['alternatif']) . '</td>';
 
 								foreach ($kriteria_list as $col_name => $data_kriteria) {
-									// Perbaikan error undefined key dengan pengecekan isset
 									$value = isset($data[$col_name]) ? $data[$col_name] : 0;
 									echo '<td>' . htmlspecialchars($value) . '</td>';
 								}
@@ -73,7 +81,24 @@ if (isset($_SESSION['username'])) {
 						<h4>2. Matriks Normalisasi ARAS</h4>
 					</div>
 					<div class="card-body">
-						<p>Matriks yang telah dinormalisasi menggunakan metode ARAS.</p>
+						<div class="alert alert-info">
+							<strong>Rumus Normalisasi:</strong>
+							<ul>
+								<li>Untuk kriteria benefit (semakin besar semakin baik):
+									<br><code>r<sub>ij</sub> = X<sub>ij</sub> / X<sub>max</sub></code>
+								</li>
+								<li>Untuk kriteria cost (semakin kecil semakin baik):
+									<br><code>r<sub>ij</sub> = X<sub>min</sub> / X<sub>ij</sub></code>
+								</li>
+							</ul>
+							<strong>Keterangan Jenis Kriteria:</strong>
+							<ul>
+								<?php foreach ($kriteria_list as $col_name => $data): ?>
+									<li><?= htmlspecialchars($data['nama']) ?>: <?= ucfirst($data['jenis']) ?></li>
+								<?php endforeach; ?>
+							</ul>
+						</div>
+
 						<?php
 						// Hitung matriks normalisasi ARAS
 						$aras_matrix = [];
@@ -93,7 +118,6 @@ if (isset($_SESSION['username'])) {
 						$sql = mysqli_query($koneksi, "SELECT * FROM data_matrik");
 						while ($data = mysqli_fetch_assoc($sql)) {
 							foreach ($kriteria_list as $col_name => $data_kriteria) {
-								// Perbaikan error undefined key dengan pengecekan isset
 								$value = isset($data[$col_name]) ? $data[$col_name] : 0;
 
 								if ($value > $max_min_values[$col_name]['max']) {
@@ -125,7 +149,6 @@ if (isset($_SESSION['username'])) {
 								echo '<tr><td>' . htmlspecialchars($data['alternatif']) . '</td>';
 
 								foreach ($kriteria_list as $col_name => $data_kriteria) {
-									// Perbaikan error undefined key dengan pengecekan isset
 									$value = isset($data[$col_name]) ? $data[$col_name] : 0;
 									$max = $max_min_values[$col_name]['max'];
 									$min = $max_min_values[$col_name]['min'];
@@ -145,6 +168,16 @@ if (isset($_SESSION['username'])) {
 							}
 
 							echo '</tbody></table></div>';
+
+							// Tampilkan nilai max/min
+							echo '<div class="mt-3"><strong>Nilai Maksimum/Minimum:</strong><ul>';
+							foreach ($max_min_values as $col_name => $data) {
+								echo '<li>' . htmlspecialchars($data['nama']) .
+									': Max=' . $data['max'] .
+									', Min=' . $data['min'] .
+									' (' . ucfirst($data['jenis']) . ')</li>';
+							}
+							echo '</ul></div>';
 						}
 						?>
 					</div>
@@ -156,7 +189,20 @@ if (isset($_SESSION['username'])) {
 						<h4>3. Matriks Terbobot ARAS (Hasil Akhir)</h4>
 					</div>
 					<div class="card-body">
-						<p>Matriks ARAS yang telah diberi bobot dari PIPRECIA-S.</p>
+						<div class="alert alert-info">
+							<strong>Rumus Pembobotan:</strong>
+							<ul>
+								<li><code>v<sub>ij</sub> = w<sub>j</sub> × r<sub>ij</sub></code></li>
+								<li>Dimana:
+									<ul>
+										<li>w<sub>j</sub> = bobot kriteria dari PIPRECIA-S</li>
+										<li>r<sub>ij</sub> = nilai normalisasi</li>
+										<li>v<sub>ij</sub> = nilai terbobot</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+
 						<?php
 						if (!empty($aras_matrix)) {
 							echo '
@@ -176,7 +222,6 @@ if (isset($_SESSION['username'])) {
 								echo '<tr><td>' . htmlspecialchars($alt) . '</td>';
 
 								foreach ($kriteria_list as $col_name => $data) {
-									// Perbaikan error undefined key dengan pengecekan isset
 									$normalized_value = isset($values[$col_name]) ? $values[$col_name] : 0;
 									$weighted = $normalized_value * $data['bobot'];
 									echo '<td>' . number_format($weighted, 4) . '</td>';
@@ -197,7 +242,20 @@ if (isset($_SESSION['username'])) {
 						<h4>4. Hasil Akhir ARAS dengan Pembobotan PIPRECIA-S</h4>
 					</div>
 					<div class="card-body">
-						<p>Nilai akhir dari perhitungan ARAS dengan pembobotan PIPRECIA-S.</p>
+						<div class="alert alert-info">
+							<strong>Rumus Nilai Akhir:</strong>
+							<ul>
+								<li><code>S<sub>i</sub> = Σ v<sub>ij</sub></code> (jumlah semua nilai terbobot per alternatif)</li>
+							</ul>
+							<strong>Klasifikasi:</strong>
+							<ul>
+								<li>0.8 - 1.0: Sangat Baik</li>
+								<li>0.6 - 0.79: Baik</li>
+								<li>0.4 - 0.59: Cukup</li>
+								<li>&lt; 0.4: Kurang</li>
+							</ul>
+						</div>
+
 						<?php
 						$aras_results = [];
 
@@ -211,17 +269,22 @@ if (isset($_SESSION['username'])) {
                                         <th>Alternatif</th>
                                         <th>Nilai Akhir</th>
                                         <th>Keterangan</th>
+                                        <th>Detail Perhitungan</th>
                                     </tr>
                                 </thead>
                                 <tbody>';
 
 							foreach ($aras_matrix as $alt => $values) {
 								$score = 0;
+								$detail = [];
+
 								foreach ($kriteria_list as $col_name => $data) {
-									// Perbaikan error undefined key dengan pengecekan isset
 									$normalized_value = isset($values[$col_name]) ? $values[$col_name] : 0;
-									$score += $normalized_value * $data['bobot'];
+									$weighted = $normalized_value * $data['bobot'];
+									$score += $weighted;
+									$detail[] = number_format($weighted, 4) . ' (' . $data['nama'] . ')';
 								}
+
 								$aras_results[$alt] = $score;
 							}
 
@@ -241,12 +304,21 @@ if (isset($_SESSION['username'])) {
 									$keterangan = 'Kurang';
 								}
 
+								// Hitung ulang detail untuk alternatif ini
+								$detail = [];
+								foreach ($kriteria_list as $col_name => $data) {
+									$normalized_value = isset($aras_matrix[$alt][$col_name]) ? $aras_matrix[$alt][$col_name] : 0;
+									$weighted = $normalized_value * $data['bobot'];
+									$detail[] = number_format($weighted, 4) . ' (' . $data['nama'] . ')';
+								}
+
 								echo '
                             <tr>
                                 <td>' . $rank . '</td>
                                 <td>' . htmlspecialchars($alt) . '</td>
                                 <td>' . number_format($score, 4) . '</td>
                                 <td>' . htmlspecialchars($keterangan) . '</td>
+                                <td>' . implode(' + ', $detail) . ' = ' . number_format($score, 4) . '</td>
                             </tr>';
 								$rank++;
 							}

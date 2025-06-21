@@ -9,8 +9,8 @@ if (isset($_SESSION['username'])) {
 		<div class="row w-full">
 			<main class="col-md-9 w-full col-lg-12 px-md-4 py-4">
 				<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-					<h1 class="h2">Hasil Perankingan ARAS dengan Bobot PIPRECIA-S</h1>
-					<div class="btn-toolbar mb-2 mb-md-0">
+					<h1 class="h2 col-8">Hasil Perankingan ARAS dengan Bobot PIPRECIA-S</h1>
+					<div class="btn-toolbar mb-2 mb-md-0 col-4">
 						<a href="../skema_hitung/skema_hitung.php" class="btn btn-warning mr-2">
 							<i class="fas fa-project-diagram"></i> View Skema
 						</a>
